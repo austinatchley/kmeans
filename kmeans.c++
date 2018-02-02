@@ -10,12 +10,17 @@
 using namespace std;
 
 int clusters;
+int max_iterations;
 float threshold;
-int iterations;
 int workers;
 string input;
 
+int iterations;
+
 int main(int argc, char *argv[]) {
+
+  threshold = 0.0000001f;
+  max_iterations = 0;
 
   int opt;
   while ((opt = getopt(argc, argv, "hc:t:i:w:I:")) != -1) {
@@ -31,7 +36,7 @@ int main(int argc, char *argv[]) {
         threshold = atof(optarg);
         break;
       case 'i':
-        iterations = atoi(optarg);
+        max_iterations = atoi(optarg);
         break;
       case 'w':
         workers = atoi(optarg);

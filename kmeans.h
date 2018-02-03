@@ -11,14 +11,34 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+/*
+* Classes
+*/
+
+class Point {
+public:
+  float x;
+  float y;
+};
+
+class DataSet {
+public:
+  numFeatures();
+};
+
+/*
+* Function Prototypes
+*/
+
 void print_help();
 
-vector<Centroids> randomCentroids(int numFeatures, int k);
+vector<Point> randomCentroids(int numFeatures, int k);
 
-map<Point, Centroid> findNearestCentroids(DataSet dataSet, vector<Centroid> centroids);
+map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Point> centroids);
 
-vector<Centroid> averageLabeledCentroids(DataSet dataSet, map<Point, Centroid> labels, int k);
+vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k);
 
-bool converged(vector<Centroid> centroids, vector<Centroid> oldCentroids);
+bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 
 #endif

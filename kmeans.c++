@@ -12,6 +12,10 @@
 
 using namespace std;
 
+/*
+* Global Vars
+*/
+
 int clusters;
 int max_iterations;
 float threshold;
@@ -20,9 +24,9 @@ string input;
 
 int iterations;
 
-class Centroid{};
-class Point{};
-class DataSet{};
+/*
+* Functions
+*/
 
 int main(int argc, char *argv[]) {
 
@@ -36,32 +40,40 @@ int main(int argc, char *argv[]) {
         print_help();
         exit(0);
         break;
+
       case 'c':
         clusters = atoi(optarg);
         break;
+      
       case 't':
         threshold = atof(optarg);
         break;
+      
       case 'i':
         max_iterations = atoi(optarg);
         break;
+      
       case 'w':
         workers = atoi(optarg);
         break;
+      
       case 'I':
         input = optarg;
         break;
     }
   }
+
+  DataSet dataSet;
+  kmeans(dataSet, clusters);
 }
 
 void kmeans(DataSet dataSet, int k) {
   iterations = 0;
 
   int numFeatures = dataSet.numFeatures();
-  vector<Centroid> centroids = randomCentroids(numFeatures, k);
+  vector<Point> centroids = randomCentroids(numFeatures, k);
 
-  vector<Centroid> oldCentroids = null;
+  vector<Point> oldCentroids = null;
   bool done = false;
   map<Point, Centroid> labels;
 
@@ -76,19 +88,19 @@ void kmeans(DataSet dataSet, int k) {
   }
 }
 
-vector<Centroids> randomCentroids(int numFeatures, int k) {
+vector<Point> randomCentroids(int numFeatures, int k) {
 
 }
 
-map<Point, Centroid> findNearestCentroids(DataSet dataSet, vector<Centroid> centroids) {
+map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Centroid> centroids) {
   return null;
 }
 
-vector<Centroid> averageLabeledCentroids(DataSet dataSet, map<Point, Centroid> labels, int k) {
+vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k) {
   return null;
 }
 
-bool converged(vector<Centroid> centroids, vector<Centroid> oldCentroids) {
+bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
   return true; 
 }
 

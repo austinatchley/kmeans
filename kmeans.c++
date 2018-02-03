@@ -25,6 +25,17 @@ string input;
 int iterations;
 
 /*
+* Function Prototypes
+*/
+
+void kmeans(DataSet dataSet, int k);
+void print_help();
+vector<Point> randomCentroids(int numFeatures, int k);
+map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Point> centroids);
+vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k);
+bool converged(vector<Point> centroids, vector<Point> oldCentroids);
+
+/*
 * Functions
 */
 
@@ -73,9 +84,9 @@ void kmeans(DataSet dataSet, int k) {
   int numFeatures = dataSet.numFeatures();
   vector<Point> centroids = randomCentroids(numFeatures, k);
 
-  vector<Point> oldCentroids = null;
+  vector<Point> oldCentroids;
   bool done = false;
-  map<Point, Centroid> labels;
+  map<Point, Point> labels;
 
   while(!done) {
     oldCentroids = centroids;
@@ -89,20 +100,37 @@ void kmeans(DataSet dataSet, int k) {
 }
 
 vector<Point> randomCentroids(int numFeatures, int k) {
-
+  vector<Point> v;
+  return v;
 }
 
-map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Centroid> centroids) {
-  return null;
+map<Point, Point> findNearestCentroids(DataSet dataSet, std::vector<Point> centroids) {
+  map<Point, Point> m;
+  return m;
 }
 
 vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k) {
-  return null;
+  vector<Point> v;
+  return v;
 }
 
 bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
   return true; 
 }
+
+
+/*
+* Class Functions
+*/
+
+int DataSet::numFeatures(){
+  return points.size();
+}
+
+
+/*
+* Utility Functions
+*/
 
 void print_help() {
   cout << "Format: " << endl

@@ -24,21 +24,9 @@ public:
 
 class DataSet {
 public:
-  numFeatures();
+  int numFeatures();
+private:
+  std::vector<Point> points;
 };
-
-/*
-* Function Prototypes
-*/
-
-void print_help();
-
-vector<Point> randomCentroids(int numFeatures, int k);
-
-map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Point> centroids);
-
-vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k);
-
-bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 
 #endif

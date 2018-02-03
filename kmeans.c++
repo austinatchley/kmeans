@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <map>
+#include <iterator>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,7 +48,43 @@ int main(int argc, char *argv[]) {
         break;
     }
   }
-  cout << clusters << endl << threshold << endl << iterations << endl << workers << endl << input << endl;
+}
+
+void kmeans(DataSet dataSet, int k) {
+  iterations = 0;
+
+  int numFeatures = dataSet.numFeatures();
+  vector<Centroid> centroids = randomCentroids(numFeatures, k);
+
+  vector<Centroid> oldCentroids = null;
+  bool done = false;
+  map<Point, Centroid> labels;
+
+  while(!done) {
+    oldCentroids = centroids;
+    iterations++;
+
+    labels = findNearestCentroids(dataSet, centroids);
+
+    centroids = averageLabeledCentroids(dataSet, labels, k);
+    done = iterations > max_iterations || converged(centroids, oldCentroids);
+  }
+}
+
+vector<Centroids> randomCentroids(int numFeatures, int k) {
+
+}
+
+map<Point, Centroid> findNearestCentroids(DataSet dataSet, vector<Centroid> centroids) {
+  return null;
+}
+
+vector<Centroid> averageLabeledCentroids(DataSet dataSet, map<Point, Centroid> labels, int k) {
+  return null;
+}
+
+bool converged(vector<Centroid> centroids, vector<Centroid> oldCentroids) {
+  return true; 
 }
 
 void print_help() {

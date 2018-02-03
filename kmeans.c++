@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <map>
+#include <vector>
 #include <iterator>
 #include <unistd.h>
 #include <stdlib.h>
@@ -18,6 +19,10 @@ int workers;
 string input;
 
 int iterations;
+
+class Centroid{};
+class Point{};
+class DataSet{};
 
 int main(int argc, char *argv[]) {
 

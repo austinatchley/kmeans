@@ -1,15 +1,15 @@
 #ifndef KMEANS
 #define KMEANS
 
-#include <vector>
 #include <iostream>
-#include <string>
-#include <sstream>
-#include <map>
 #include <iterator>
-#include <unistd.h>
-#include <stdlib.h>
+#include <map>
+#include <sstream>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <unistd.h>
+#include <vector>
 
 using namespace std;
 
@@ -21,7 +21,7 @@ class Point {
 public:
   vector<float> vals;
 
-  Point(vector<float> newVals): vals(newVals) {};
+  Point(vector<float> newVals) : vals(newVals){};
   int getDimensions();
 };
 
@@ -31,6 +31,7 @@ public:
   int getDimensions();
   void setPoints(vector<Point>);
   vector<Point> getPoints();
+
 private:
   vector<Point> points;
 };

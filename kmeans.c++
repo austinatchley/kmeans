@@ -1,14 +1,14 @@
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <map>
-#include <vector>
-#include <iterator>
-#include <fstream>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <sstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <unistd.h>
+#include <vector>
 
 #include "kmeans.h"
 
@@ -33,38 +33,28 @@ int iterations;
 void kmeans(DataSet dataSet, int k);
 
 vector<Point> randomCentroids(int numFeatures, int k, int dimensions);
-map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Point> centroids);
-vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k);
+map<Point, Point> findNearestCentroids(DataSet dataSet,
+                                       vector<Point> centroids);
+vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels,
+                                      int k);
 bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 
 void print_help();
-DataSet& readFile(DataSet& ds, string filePath);
-
+DataSet &readFile(DataSet &ds, string filePath);
 
 /*
 * Class Functions
 */
 
-int Point::getDimensions() {
-  return this->vals.size();
-}
+int Point::getDimensions() { return this->vals.size(); }
 
-int DataSet::numFeatures(){
-  return this->points.size();
-}
+int DataSet::numFeatures() { return this->points.size(); }
 
-void DataSet::setPoints(vector<Point> points) {
-  this->points = points;
-}
+void DataSet::setPoints(vector<Point> points) { this->points = points; }
 
-vector<Point> DataSet::getPoints() {
-  return this->points;
-}
+vector<Point> DataSet::getPoints() { return this->points; }
 
-int DataSet::getDimensions() {
-  return this->points[0].getDimensions();
-}
-
+int DataSet::getDimensions() { return this->points[0].getDimensions(); }
 
 /*
 * Functions
@@ -77,36 +67,36 @@ int main(int argc, char *argv[]) {
 
   int opt;
   while ((opt = getopt(argc, argv, "hc:t:i:w:I:")) != -1) {
-    switch(opt) {
-      case 'h':
-        print_help();
-        exit(0);
-        break;
+    switch (opt) {
+    case 'h':
+      print_help();
+      exit(0);
+      break;
 
-      case 'c':
-        assert(optarg);
-        clusters = atoi(optarg);
-        break;
-      
-      case 't':
-        assert(optarg);
-        threshold = atof(optarg);
-        break;
-      
-      case 'i':
-        assert(optarg);
-        max_iterations = atoi(optarg);
-        break;
-      
-      case 'w':
-        assert(optarg);
-        workers = atoi(optarg);
-        break;
-      
-      case 'I':
-        assert(optarg);
-        input = optarg;
-        break;
+    case 'c':
+      assert(optarg);
+      clusters = atoi(optarg);
+      break;
+
+    case 't':
+      assert(optarg);
+      threshold = atof(optarg);
+      break;
+
+    case 'i':
+      assert(optarg);
+      max_iterations = atoi(optarg);
+      break;
+
+    case 'w':
+      assert(optarg);
+      workers = atoi(optarg);
+      break;
+
+    case 'I':
+      assert(optarg);
+      input = optarg;
+      break;
     }
   }
 
@@ -123,13 +113,14 @@ void kmeans(DataSet dataSet, int k) {
   iterations = 0;
 
   int numFeatures = dataSet.numFeatures();
-  vector<Point> centroids = randomCentroids(numFeatures, k, dataSet.getDimensions());
+  vector<Point> centroids =
+      randomCentroids(numFeatures, k, dataSet.getDimensions());
 
   vector<Point> oldCentroids;
   bool done = false;
   map<Point, Point> labels;
 
-  while(!done) {
+  while (!done) {
     oldCentroids = centroids;
     iterations++;
 
@@ -143,10 +134,10 @@ void kmeans(DataSet dataSet, int k) {
 vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
   vector<Point> centroids;
 
-  for(int i = 0; i < numFeatures; ++i) {
+  for (int i = 0; i < numFeatures; ++i) {
     vector<float> vals;
-    for(int j = 0; j < dimensions; ++j)
-      vals.push_back(((float) rand()) / RAND_MAX);
+    for (int j = 0; j < dimensions; ++j)
+      vals.push_back(((float)rand()) / RAND_MAX);
 
     Point p(vals);
     centroids.push_back(p);
@@ -155,12 +146,14 @@ vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
   return centroids;
 }
 
-map<Point, Point> findNearestCentroids(DataSet dataSet, std::vector<Point> centroids) {
+map<Point, Point> findNearestCentroids(DataSet dataSet,
+                                       std::vector<Point> centroids) {
   map<Point, Point> m;
   return m;
 }
 
-vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k) {
+vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels,
+                                      int k) {
   vector<Point> v;
   return v;
 }
@@ -169,23 +162,23 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
   assert(centroids.size() == oldCentroids.size());
   assert(centroids[0].vals.size() == oldCentroids[0].vals.size());
 
-  for(int i = 0; i < centroids.size(); ++i){
+  for (int i = 0; i < centroids.size(); ++i) {
     Point curPoint = centroids[i];
     Point oldPoint = oldCentroids[i];
-    for(int j = 0; j < curPoint.vals.size(); ++j)
-      if(curPoint.vals[j] - oldPoint.vals[j] > threshold)  //if any haven't converged, not done
+    for (int j = 0; j < curPoint.vals.size(); ++j)
+      if (curPoint.vals[j] - oldPoint.vals[j] >
+          threshold) // if any haven't converged, not done
         return false;
   }
 
-  return true; 
+  return true;
 }
-
 
 /*
 * Utility Functions
 */
 
-DataSet& readFile(DataSet& ds, string filePath) {
+DataSet &readFile(DataSet &ds, string filePath) {
   vector<Point> points;
 
   ifstream inFile;
@@ -193,7 +186,7 @@ DataSet& readFile(DataSet& ds, string filePath) {
 
   if (!inFile) {
     cerr << "Unable to open input file";
-    exit(1);   // call system to stop
+    exit(1); // call system to stop
   }
 
   int size;
@@ -206,9 +199,9 @@ DataSet& readFile(DataSet& ds, string filePath) {
   while (getline(inFile, line)) {
     vector<float> nums;
     istringstream is(line);
-    
+
     float num;
-    while(is >> num)
+    while (is >> num)
       nums.push_back(num);
 
     Point point(nums);
@@ -232,6 +225,7 @@ DataSet& readFile(DataSet& ds, string filePath) {
 
 void print_help() {
   cout << "Format: " << endl
-    << "kmeans -c clusters -t threshold -i iterations -w workers -I path/to/input"
-    << endl;
+       << "kmeans -c clusters -t threshold -i iterations -w workers -I "
+          "path/to/input"
+       << endl;
 }

@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+using namespace std;
 
 /*
 * Classes
@@ -18,16 +19,20 @@
 
 class Point {
 public:
-  Point(float newX, float newY): x(newX), y(newY) {};
-  float x;
-  float y;
+  vector<float> vals;
+
+  Point(vector<float> newVals): vals(newVals) {};
+  int getDimensions();
 };
 
 class DataSet {
 public:
   int numFeatures();
+  int getDimensions();
+  void setPoints(vector<Point>);
+  vector<Point> getPoints();
 private:
-  std::vector<Point> points;
+  vector<Point> points;
 };
 
 #endif

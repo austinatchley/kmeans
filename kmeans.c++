@@ -32,13 +32,39 @@ int iterations;
 
 void kmeans(DataSet dataSet, int k);
 
-vector<Point> randomCentroids(int numFeatures, int k);
+vector<Point> randomCentroids(int numFeatures, int k, int dimensions);
 map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Point> centroids);
 vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k);
 bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 
 void print_help();
-DataSet readFile(string filePath);
+DataSet& readFile(DataSet& ds, string filePath);
+
+
+/*
+* Class Functions
+*/
+
+int Point::getDimensions() {
+  return this->vals.size();
+}
+
+int DataSet::numFeatures(){
+  return this->points.size();
+}
+
+void DataSet::setPoints(vector<Point> points) {
+  this->points = points;
+}
+
+vector<Point> DataSet::getPoints() {
+  return this->points;
+}
+
+int DataSet::getDimensions() {
+  return this->points[0].getDimensions();
+}
+
 
 /*
 * Functions
@@ -84,7 +110,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  DataSet dataSet = readFile(input);
+  DataSet dataSet;
+  readFile(dataSet, input);
+
+  vector<Point> points = dataSet.getPoints();
+  vector<float> vals = points[0].vals;
+
   kmeans(dataSet, clusters);
 }
 
@@ -92,7 +123,7 @@ void kmeans(DataSet dataSet, int k) {
   iterations = 0;
 
   int numFeatures = dataSet.numFeatures();
-  vector<Point> centroids = randomCentroids(numFeatures, k);
+  vector<Point> centroids = randomCentroids(numFeatures, k, dataSet.getDimensions());
 
   vector<Point> oldCentroids;
   bool done = false;
@@ -104,20 +135,24 @@ void kmeans(DataSet dataSet, int k) {
 
     labels = findNearestCentroids(dataSet, centroids);
 
-    centroids = averageLabeledCentroids(dataSet, labels, k);
+    // centroids = averageLabeledCentroids(dataSet, labels, k);
     done = iterations > max_iterations || converged(centroids, oldCentroids);
   }
 }
 
-vector<Point> randomCentroids(int numFeatures, int k) {
-  vector<Point> v;
+vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
+  vector<Point> centroids;
 
   for(int i = 0; i < numFeatures; ++i) {
-    Point p(i,1-i);
-    v.push_back(p);
+    vector<float> vals;
+    for(int j = 0; j < dimensions; ++j)
+      vals.push_back(((float) rand()) / RAND_MAX);
+
+    Point p(vals);
+    centroids.push_back(p);
   }
 
-  return v;
+  return centroids;
 }
 
 map<Point, Point> findNearestCentroids(DataSet dataSet, std::vector<Point> centroids) {
@@ -131,16 +166,18 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels,
 }
 
 bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
+  assert(centroids.size() == oldCentroids.size());
+  assert(centroids[0].vals.size() == oldCentroids[0].vals.size());
+
+  for(int i = 0; i < centroids.size(); ++i){
+    Point curPoint = centroids[i];
+    Point oldPoint = oldCentroids[i];
+    for(int j = 0; j < curPoint.vals.size(); ++j)
+      if(curPoint.vals[j] - oldPoint.vals[j] > threshold)  //if any haven't converged, not done
+        return false;
+  }
+
   return true; 
-}
-
-
-/*
-* Class Functions
-*/
-
-int DataSet::numFeatures(){
-  return points.size();
 }
 
 
@@ -148,10 +185,8 @@ int DataSet::numFeatures(){
 * Utility Functions
 */
 
-DataSet readFile(string filePath) {
-  DataSet ds;
-
-  vector<float> v;
+DataSet& readFile(DataSet& ds, string filePath) {
+  vector<Point> points;
 
   ifstream inFile;
   inFile.open(filePath);
@@ -164,17 +199,33 @@ DataSet readFile(string filePath) {
   int size;
   inFile >> size;
 
-  float num;
-  while (inFile >> num)
-    v.push_back(num);
+  cout << "Size: " << size << endl;
+
+  string line;
+  getline(inFile, line);
+  while (getline(inFile, line)) {
+    vector<float> nums;
+    istringstream is(line);
+    
+    float num;
+    while(is >> num)
+      nums.push_back(num);
+
+    Point point(nums);
+    points.push_back(point);
+  }
 
   inFile.close();
 
-  /*cout << "vector v of size" << v.size() << " contains:";
-  for (unsigned i = 0; i < v.size(); ++i)
-    cout << ' ' << v[i] << endl;
-  cout << endl;*/
+  ds.setPoints(points);
 
+  /*cout << "vector points of size" << points.size() << " contains:";
+  for (unsigned i = 0; i < points.size(); ++i) {
+    vector<float> p = points[i].vals;
+    for(unsigned j = 0; j < p.size(); ++j)
+      cout << ' ' << p[j] << endl;
+  }
+  cout << endl;*/
 
   return ds;
 }

@@ -18,6 +18,7 @@
 
 class Point {
 public:
+  Point(float newX, float newY): x(newX), y(newY) {};
   float x;
   float y;
 };

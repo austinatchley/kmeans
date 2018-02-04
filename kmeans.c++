@@ -4,9 +4,11 @@
 #include <map>
 #include <vector>
 #include <iterator>
+#include <fstream>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "kmeans.h"
 
@@ -29,11 +31,14 @@ int iterations;
 */
 
 void kmeans(DataSet dataSet, int k);
-void print_help();
+
 vector<Point> randomCentroids(int numFeatures, int k);
 map<Point, Point> findNearestCentroids(DataSet dataSet, vector<Point> centroids);
 vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels, int k);
 bool converged(vector<Point> centroids, vector<Point> oldCentroids);
+
+void print_help();
+DataSet readFile(string filePath);
 
 /*
 * Functions
@@ -53,28 +58,33 @@ int main(int argc, char *argv[]) {
         break;
 
       case 'c':
+        assert(optarg);
         clusters = atoi(optarg);
         break;
       
       case 't':
+        assert(optarg);
         threshold = atof(optarg);
         break;
       
       case 'i':
+        assert(optarg);
         max_iterations = atoi(optarg);
         break;
       
       case 'w':
+        assert(optarg);
         workers = atoi(optarg);
         break;
       
       case 'I':
+        assert(optarg);
         input = optarg;
         break;
     }
   }
 
-  DataSet dataSet;
+  DataSet dataSet = readFile(input);
   kmeans(dataSet, clusters);
 }
 
@@ -101,6 +111,12 @@ void kmeans(DataSet dataSet, int k) {
 
 vector<Point> randomCentroids(int numFeatures, int k) {
   vector<Point> v;
+
+  for(int i = 0; i < numFeatures; ++i) {
+    Point p(i,1-i);
+    v.push_back(p);
+  }
+
   return v;
 }
 
@@ -131,6 +147,37 @@ int DataSet::numFeatures(){
 /*
 * Utility Functions
 */
+
+DataSet readFile(string filePath) {
+  DataSet ds;
+
+  vector<float> v;
+
+  ifstream inFile;
+  inFile.open(filePath);
+
+  if (!inFile) {
+    cerr << "Unable to open input file";
+    exit(1);   // call system to stop
+  }
+
+  int size;
+  inFile >> size;
+
+  float num;
+  while (inFile >> num)
+    v.push_back(num);
+
+  inFile.close();
+
+  /*cout << "vector v of size" << v.size() << " contains:";
+  for (unsigned i = 0; i < v.size(); ++i)
+    cout << ' ' << v[i] << endl;
+  cout << endl;*/
+
+
+  return ds;
+}
 
 void print_help() {
   cout << "Format: " << endl

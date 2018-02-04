@@ -200,6 +200,11 @@ DataSet &readFile(DataSet &ds, string filePath) {
     vector<float> nums;
     istringstream is(line);
 
+    int lineNumber;
+    is >> lineNumber;
+
+    assert(points.size() == lineNumber - 1);
+
     float num;
     while (is >> num)
       nums.push_back(num);

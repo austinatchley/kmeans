@@ -62,7 +62,7 @@ int DataSet::getDimensions() { return this->points[0].getDimensions(); }
 
 int main(int argc, char *argv[]) {
 
-  threshold = 0.0000001f;
+  threshold = DEFAULT_THRESH;
   max_iterations = 0;
 
   int opt;

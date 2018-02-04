@@ -1,6 +1,8 @@
 #ifndef KMEANS
 #define KMEANS
 
+#define DEFAULT_THRESH 0.0000001f
+
 #include <iostream>
 #include <iterator>
 #include <map>

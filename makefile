@@ -2,10 +2,10 @@ all: kmeans
 	
 
 clean:
-	rm *.o
+	rm *.out
 
 kmeans:
-	g++ kmeans.c++ -o kmeans.o -std=c++0x
+	g++ kmeans.c++ -o kmeans.out -std=c++0x
 
 format:
 	clang-format -i kmeans.c++

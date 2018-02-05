@@ -114,8 +114,8 @@ int main(int argc, char *argv[]) {
 }
 
 void kmeans(DataSet dataSet, int k) {
-  if(k > dataSet.numFeatures())
-    return;  
+  if (k > dataSet.numFeatures())
+    return;
 
   iterations = 0;
 
@@ -159,10 +159,10 @@ map<Point, Point> findNearestCentroids(DataSet dataSet,
   map<Point, Point> m;
   vector<Point> points = dataSet.getPoints();
 
-  for(int i = 0; i < points.size(); ++i) {
+  for (int i = 0; i < points.size(); ++i) {
     Point point = points[i];
     Point nearest = findNearestCentroid(point, centroids);
-    m.insert( pair<Point, Point>(point, nearest) );
+    m.insert(pair<Point, Point>(point, nearest));
   }
 
   return m;

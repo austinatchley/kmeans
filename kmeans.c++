@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <cfloat>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -15,8 +17,8 @@
 using namespace std;
 
 /*
-* Global Vars
-*/
+ * Global Vars
+ */
 
 int clusters;
 int max_iterations;
@@ -27,14 +29,16 @@ string input;
 int iterations;
 
 /*
-* Function Prototypes
-*/
+ * Function Prototypes
+ */
 
 void kmeans(DataSet dataSet, int k);
 
 vector<Point> randomCentroids(int numFeatures, int k, int dimensions);
 map<Point, Point> findNearestCentroids(DataSet dataSet,
                                        vector<Point> centroids);
+Point findNearestCentroid(Point point, vector<Point> centroids);
+
 vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels,
                                       int k);
 bool converged(vector<Point> centroids, vector<Point> oldCentroids);
@@ -43,8 +47,8 @@ void print_help();
 DataSet &readFile(DataSet &ds, string filePath);
 
 /*
-* Class Functions
-*/
+ * Class Functions
+ */
 
 int Point::getDimensions() { return this->vals.size(); }
 
@@ -57,8 +61,8 @@ vector<Point> DataSet::getPoints() { return this->points; }
 int DataSet::getDimensions() { return this->points[0].getDimensions(); }
 
 /*
-* Functions
-*/
+ * Functions
+ */
 
 int main(int argc, char *argv[]) {
 
@@ -137,7 +141,8 @@ vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
   for (int i = 0; i < numFeatures; ++i) {
     vector<float> vals;
     for (int j = 0; j < dimensions; ++j)
-      vals.push_back(((float)rand()) / RAND_MAX);
+      vals.push_back(((float)rand()) /
+                     RAND_MAX); // Generate rand between 0 and 1
 
     Point p(vals);
     centroids.push_back(p);
@@ -147,9 +152,30 @@ vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
 }
 
 map<Point, Point> findNearestCentroids(DataSet dataSet,
-                                       std::vector<Point> centroids) {
+                                       vector<Point> centroids) {
   map<Point, Point> m;
   return m;
+}
+
+Point findNearestCentroid(Point point, vector<Point> centroids) {
+  assert(centroids.size() > 0);
+
+  double min_dist = FLT_MAX;
+  int index = -1;
+  double sum = 0.0;
+
+  for (int i = 0; i < centroids.size(); ++i) {
+    for (int j = 0; j < point.getDimensions(); ++j) {
+      sum += pow(centroids[i].vals[j] - point.vals[j], 2.0);
+    }
+    double tmp = sqrt(sum);
+    if (tmp < min_dist) {
+      min_dist = tmp;
+      index = i;
+    }
+  }
+  assert(index != -1);
+  return centroids[index];
 }
 
 vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels,
@@ -166,8 +192,8 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
     Point curPoint = centroids[i];
     Point oldPoint = oldCentroids[i];
     for (int j = 0; j < curPoint.vals.size(); ++j)
-      if (curPoint.vals[j] - oldPoint.vals[j] >
-          threshold) // if any haven't converged, not done
+      // if any haven't converged, not done
+      if (curPoint.vals[j] - oldPoint.vals[j] > threshold)
         return false;
   }
 
@@ -175,8 +201,8 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
 }
 
 /*
-* Utility Functions
-*/
+ * Utility Functions
+ */
 
 DataSet &readFile(DataSet &ds, string filePath) {
   vector<Point> points;

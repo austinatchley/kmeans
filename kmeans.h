@@ -16,8 +16,8 @@
 using namespace std;
 
 /*
-* Classes
-*/
+ * Classes
+ */
 
 class Point {
 public:

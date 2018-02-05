@@ -114,6 +114,9 @@ int main(int argc, char *argv[]) {
 }
 
 void kmeans(DataSet dataSet, int k) {
+  if(k > dataSet.numFeatures())
+    return;  
+
   iterations = 0;
 
   int numFeatures = dataSet.numFeatures();
@@ -176,9 +179,9 @@ Point findNearestCentroid(Point point, vector<Point> centroids) {
     for (int j = 0; j < point.getDimensions(); ++j) {
       sum += pow(centroids[i].vals[j] - point.vals[j], 2.0);
     }
-    double tmp = sqrt(sum);
-    if (tmp < min_dist) {
-      min_dist = tmp;
+    double dist = sqrt(sum);
+    if (dist < min_dist) {
+      min_dist = dist;
       index = i;
     }
   }

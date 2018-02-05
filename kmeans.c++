@@ -154,6 +154,14 @@ vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
 map<Point, Point> findNearestCentroids(DataSet dataSet,
                                        vector<Point> centroids) {
   map<Point, Point> m;
+  vector<Point> points = dataSet.getPoints();
+
+  for(int i = 0; i < points.size(); ++i) {
+    Point point = points[i];
+    Point nearest = findNearestCentroid(point, centroids);
+    m.insert( pair<Point, Point>(point, nearest) );
+  }
+
   return m;
 }
 

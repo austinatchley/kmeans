@@ -141,7 +141,7 @@ void kmeans(DataSet dataSet, int k) {
 vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
   vector<Point> centroids;
 
-  for (int i = 0; i < numFeatures; ++i) {
+  for (int i = 0; i < k; ++i) {
     vector<float> vals;
     for (int j = 0; j < dimensions; ++j)
       vals.push_back(((float)rand()) /

@@ -144,8 +144,8 @@ vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
   for (int i = 0; i < k; ++i) {
     vector<float> vals;
     for (int j = 0; j < dimensions; ++j)
-      vals.push_back(((float)rand()) /
-                     RAND_MAX); // Generate rand between 0 and 1
+      // Generate rand between 0 and 1
+      vals.push_back(((float)rand()) / RAND_MAX);
 
     Point p(vals);
     centroids.push_back(p);
@@ -186,6 +186,7 @@ Point findNearestCentroid(Point point, vector<Point> centroids) {
     }
   }
   assert(index != -1);
+  assert(min_dist != FLT_MAX);
   return centroids[index];
 }
 

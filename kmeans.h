@@ -28,9 +28,11 @@ public:
     for (int n : vals)
       total += n;
   };
+
   int getDimensions();
 
   bool operator<(const Point &other) const;
+  bool operator=(const Point &other) const;
 };
 
 class DataSet {
@@ -48,8 +50,20 @@ bool Point::operator<(const Point &other) const {
   return this->total < other.total;
 }
 
+bool Point::operator=(const Point &other) const {
+  if (this->vals.size() != other.vals.size())
+    return false;
+
+  for (int i = 0; i < this->vals.size(); ++i) {
+    if (this->vals[i] != other.vals[i])
+      return false;
+  }
+
+  return true;
+}
+
 namespace point {
-typedef std::map<Point, Point> pointMap;
+typedef std::map<Point, int> pointMap;
 }
 
 #endif

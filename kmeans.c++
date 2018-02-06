@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <cfloat>
 #include <cmath>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -36,10 +37,11 @@ void kmeans(DataSet dataSet, int k);
 
 vector<Point> randomCentroids(int numFeatures, int k, int dimensions);
 point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids);
-Point findNearestCentroid(Point point, vector<Point> centroids);
+int findNearestCentroid(Point point, vector<Point> centroids);
 
 vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
-                                      int k);
+                                      vector<Point> centroids);
+
 bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 
 void print_help();
@@ -109,7 +111,14 @@ int main(int argc, char *argv[]) {
   vector<Point> points = dataSet.getPoints();
   vector<float> vals = points[0].vals;
 
+  clock_t start;
+  double duration;
+
+  start = clock();
   kmeans(dataSet, clusters);
+  duration = (clock() - start) / (double)CLOCKS_PER_SEC;
+
+  cout << "Duration: " << duration << endl;
 }
 
 void kmeans(DataSet dataSet, int k) {
@@ -132,7 +141,7 @@ void kmeans(DataSet dataSet, int k) {
 
     labels = findNearestCentroids(dataSet, centroids);
 
-    // centroids = averageLabeledCentroids(dataSet, labels, k);
+    centroids = averageLabeledCentroids(dataSet, labels, centroids);
     done = iterations > max_iterations || converged(centroids, oldCentroids);
   }
 }
@@ -154,19 +163,20 @@ vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
 }
 
 point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
-  point::pointMap m;
+  point::pointMap map;
   vector<Point> points = dataSet.getPoints();
 
   for (int i = 0; i < points.size(); ++i) {
     Point point = points[i];
-    Point nearestCentroid = findNearestCentroid(point, centroids);
-    m.insert(pair<Point, Point>(point, nearestCentroid));
+    int nearestCentroid =
+        findNearestCentroid(point, centroids); // returns index of the centroid
+    map.insert(pair<Point, int>(point, nearestCentroid));
   }
 
-  return m;
+  return map;
 }
 
-Point findNearestCentroid(Point point, vector<Point> centroids) {
+int findNearestCentroid(Point point, vector<Point> centroids) {
   assert(centroids.size() > 0);
 
   double min_dist = FLT_MAX;
@@ -185,13 +195,49 @@ Point findNearestCentroid(Point point, vector<Point> centroids) {
   }
   assert(index != -1);
   assert(min_dist != FLT_MAX);
-  return centroids[index];
+  return index; // returns the index of the centroid in the centroids vector
 }
 
 vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
-                                      int k) {
-  vector<Point> v;
-  return v;
+                                      vector<Point> centroids) {
+  vector<Point> updatedCentroids;
+  updatedCentroids.reserve(centroids.size());
+
+  cout << "Initial size of " << centroids.size() << endl;
+
+  vector<float> sums[centroids.size()]; // indices correspond to centroids
+  int numPointsPerCentroid[centroids.size()];
+
+  for (vector<float> elem : sums)
+    elem.reserve(dataSet.getDimensions());
+
+  for (const auto &pair : labels) {
+    Point point = pair.first;
+    int centroidIndex = pair.second;
+
+    numPointsPerCentroid[centroidIndex]++;
+
+    vector<float> centroidSum = sums[centroidIndex];
+    for (int i = 0; i < centroidSum.size(); ++i)
+      centroidSum[i] += point.vals[i];
+  }
+
+  vector<float> nums;
+  nums.reserve(dataSet.getDimensions());
+  for (int i = 0; i < centroids.size(); ++i) {
+    vector<float> sum = sums[i];
+
+    for (int j = 0; j < sum.size(); ++j) {
+      nums[i] = (sum[j] / numPointsPerCentroid[i]);
+    }
+
+    Point point(nums);
+    updatedCentroids.push_back(point);
+  }
+
+  cout << "Final size of " << updatedCentroids.size() << endl << endl;
+  
+  return updatedCentroids;
 }
 
 bool converged(vector<Point> centroids, vector<Point> oldCentroids) {

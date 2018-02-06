@@ -35,11 +35,10 @@ int iterations;
 void kmeans(DataSet dataSet, int k);
 
 vector<Point> randomCentroids(int numFeatures, int k, int dimensions);
-map<Point, Point> findNearestCentroids(DataSet dataSet,
-                                       vector<Point> centroids);
+point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids);
 Point findNearestCentroid(Point point, vector<Point> centroids);
 
-vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels,
+vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
                                       int k);
 bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 
@@ -125,7 +124,7 @@ void kmeans(DataSet dataSet, int k) {
 
   vector<Point> oldCentroids;
   bool done = false;
-  map<Point, Point> labels;
+  point::pointMap labels;
 
   while (!done) {
     oldCentroids = centroids;
@@ -154,15 +153,14 @@ vector<Point> randomCentroids(int numFeatures, int k, int dimensions) {
   return centroids;
 }
 
-map<Point, Point> findNearestCentroids(DataSet dataSet,
-                                       vector<Point> centroids) {
-  map<Point, Point> m;
+point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
+  point::pointMap m;
   vector<Point> points = dataSet.getPoints();
 
   for (int i = 0; i < points.size(); ++i) {
     Point point = points[i];
-    Point nearest = findNearestCentroid(point, centroids);
-    m.insert(pair<Point, Point>(point, nearest));
+    Point nearestCentroid = findNearestCentroid(point, centroids);
+    m.insert(pair<Point, Point>(point, nearestCentroid));
   }
 
   return m;
@@ -190,7 +188,7 @@ Point findNearestCentroid(Point point, vector<Point> centroids) {
   return centroids[index];
 }
 
-vector<Point> averageLabeledCentroids(DataSet dataSet, map<Point, Point> labels,
+vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
                                       int k) {
   vector<Point> v;
   return v;

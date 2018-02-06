@@ -22,9 +22,15 @@ using namespace std;
 class Point {
 public:
   vector<float> vals;
+  float total;
 
-  Point(vector<float> newVals) : vals(newVals){};
+  Point(vector<float> newVals) : vals(newVals) {
+    for (int n : vals)
+      total += n;
+  };
   int getDimensions();
+
+  bool operator<(const Point &other) const;
 };
 
 class DataSet {
@@ -37,5 +43,13 @@ public:
 private:
   vector<Point> points;
 };
+
+bool Point::operator<(const Point &other) const {
+  return this->total < other.total;
+}
+
+namespace point {
+typedef std::map<Point, Point> pointMap;
+}
 
 #endif

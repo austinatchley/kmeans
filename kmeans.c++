@@ -236,7 +236,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
   }
 
   cout << "Final size of " << updatedCentroids.size() << endl << endl;
-  
+
   return updatedCentroids;
 }
 

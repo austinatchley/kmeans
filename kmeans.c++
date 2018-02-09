@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
   double duration;
 
   start = clock();
-  
+
   kmeans(dataSet, clusters);
   duration = (clock() - start) / (double)CLOCKS_PER_SEC;
 
@@ -145,6 +145,13 @@ void kmeans(DataSet dataSet, int k) {
     centroids = averageLabeledCentroids(dataSet, labels, centroids);
     done = iterations > max_iterations || converged(centroids, oldCentroids);
   }
+  for (const auto &point : centroids) {
+    cout << "[";
+    for (float val : point.vals) {
+      cout << val << ",";
+    }
+    cout << "]" << endl;
+  }
 }
 
 vector<Point> randomCentroids(int numFeatures, int k, DataSet dataSet) {
@@ -155,21 +162,17 @@ vector<Point> randomCentroids(int numFeatures, int k, DataSet dataSet) {
   int dimensions = dataSet.getDimensions();
 
   for (int i = 0; i < k; ++i) {
-    vector<float> vals;
-    for (int j = 0; j < dimensions; ++j) {
-      // Generate rand index
-      int index;
+    // Generate rand index
+    int index;
 
-      do {
-        index = (((int)rand()) % dimensions);
-      } while (find(indicesUsed.begin(), indicesUsed.end(), index) !=
-               indicesUsed.end());
+    do {
+      index = (((int)rand()) % points.size());
+    } while (find(indicesUsed.begin(), indicesUsed.end(), index) !=
+             indicesUsed.end());
 
-      indicesUsed.push_back(index);
-      vals.push_back(points[index].vals[j]);
-    }
+    indicesUsed.push_back(index);
 
-    Point p(vals);
+    Point p(points[index]);
     centroids.push_back(p);
   }
 
@@ -337,14 +340,14 @@ DataSet &readFile(DataSet &ds, string filePath) {
     float num;
     while (is >> num)
       nums.push_back(num);
-    
+
     Point point(nums);
     points.push_back(point);
   }
 
-    cout << "test";
+  cout << "test";
 
-  //inFile.close();
+  // inFile.close();
 
   ds.setPoints(points);
 

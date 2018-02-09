@@ -124,9 +124,6 @@ int main(int argc, char *argv[]) {
 }
 
 void kmeans(DataSet dataSet, int k) {
-  if (k > dataSet.numFeatures())
-    return;
-
   iterations = 0;
 
   int dimensions = dataSet.getDimensions();

@@ -133,7 +133,7 @@ void kmeans(DataSet dataSet, int k) {
   bool done = false;
   point::pointMap labels;
 
-  while (!done) {
+  do {
     oldCentroids = centroids;
 
 #ifdef DEBUG
@@ -144,14 +144,14 @@ void kmeans(DataSet dataSet, int k) {
     labels = findNearestCentroids(dataSet, centroids);
 
     centroids = averageLabeledCentroids(dataSet, labels, centroids);
-    done = iterations > max_iterations || converged(centroids, oldCentroids);
-  }
+  } while (iterations < max_iterations && !converged(centroids, oldCentroids));
 
+  cout << endl << "Completed in " << iterations << " iterations." << endl;
   for (const auto &point : centroids) {
     cout << "[";
     for (int i = 0; i < point.vals.size() - 1; ++i) {
       float val = point.vals[i];
-      cout << val << ",";
+      cout << val << ", ";
     }
     cout << point.vals[point.vals.size() - 1];
     cout << "]" << endl;
@@ -190,8 +190,22 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
     Point point = points[i];
     int nearestCentroid =
         findNearestCentroid(point, centroids); // returns index of the centroid
-    cout << "Nearest Cent: " << nearestCentroid << endl;
-    map.insert(pair<Point, int>(point, nearestCentroid));
+
+    // cout << "Point " << i << " Nearest Cent: " << nearestCentroid << endl;
+
+    map[point] = nearestCentroid;
+
+    /*
+    pair<point::pointMap::iterator,bool> ret;
+    ret = map.insert(pair<Point, int>(point, nearestCentroid));
+    if (ret.second == false) {
+      cout << "Big fucking problems" << endl;
+      cout << i << " already exists with val of " << ret.first->second << endl;
+    }
+    */
+
+    // cout << map.at(point) << endl;
+    assert(map.at(point) == nearestCentroid);
   }
 
 #ifdef DEBUG
@@ -228,10 +242,11 @@ int findNearestCentroid(Point point, vector<Point> centroids) {
     }
 
     assert(sum >= 0);
-    if (sum <= 0)
+    /*if (sum <= 0)
       for (const auto &val : centroids)
         for (const auto &num : val.vals)
           cout << num << endl;
+    */
 
     double dist = sqrt(sum);
     assert(dist - dist == 0); // make sure we don't have nan
@@ -298,7 +313,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     cout << "Values of nums:" << endl;
 #endif
 
-    cout << "Centroid " << i << ": " << numPointsPerCentroid[i] << endl;
+    // cout << "Centroid " << i << ": " << numPointsPerCentroid[i] << endl;
 
     for (int j = 0; j < dataSet.getDimensions(); ++j) {
       float finalNum = sum[j];
@@ -321,7 +336,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     updatedCentroids.push_back(point);
   }
 
-  cout << endl;
+// cout << endl;
 
 #ifdef DEBUG
   cout << "Final size of: " << updatedCentroids.size() << endl;

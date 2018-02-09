@@ -7,7 +7,12 @@ import matplotlib.pyplot as plt
 from io import StringIO
 
 
-args = "./kmeans.out -c 4 -t 0.0000001 -i 20 -w 1 -I" + sys.argv[1]
+args = "./kmeans.out -c " + sys.argv[1] +    \
+    "  -t " + sys.argv[2] +                 \
+    " -i " + sys.argv[3]  +                 \
+    " -w " + sys.argv[4]  +                 \
+    " -I " + sys.argv[5]
+
 output = subprocess.check_output(args.split())
 result = output.decode('utf-8')
 # print(result)

@@ -30,7 +30,7 @@ else:
         for dim in range(numDim):
             center.append(random.random())
         centers.append(center)
-    sigma = (1. / numCenter) ** 3
+    sigma = (1. / numCenter) ** 2
     for row in range(1, numRow+1):
         center = random.choice(centers)
         print row,

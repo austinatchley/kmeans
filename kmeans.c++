@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits.h>
 #include <map>
 #include <sstream>
 #include <stdio.h>
@@ -36,7 +37,7 @@ int iterations;
 
 void kmeans(DataSet dataSet, int k);
 
-vector<Point> randomCentroids(int numFeatures, int k, DataSet dataSet);
+vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet);
 point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids);
 int findNearestCentroid(Point point, vector<Point> centroids);
 
@@ -47,18 +48,17 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 
 void print_help();
 DataSet &readFile(DataSet &ds, string filePath);
+void printPointVector (vector<Point> points);
 
 /*
  * Class Functions
  */
 
-int Point::getDimensions() { return this->vals.size(); }
-
-int DataSet::numFeatures() { return this->points.size(); }
+const int Point::getDimensions() { return this->vals.size(); }
 
 void DataSet::setPoints(vector<Point> points) { this->points = points; }
 
-vector<Point> DataSet::getPoints() { return this->points; }
+const vector<Point> DataSet::getPoints() { return this->points; }
 
 int DataSet::getDimensions() { return this->points[0].getDimensions(); }
 
@@ -69,9 +69,9 @@ int DataSet::getDimensions() { return this->points[0].getDimensions(); }
 int main(int argc, char *argv[]) {
 
   threshold = DEFAULT_THRESH;
-  max_iterations = 0;
+  max_iterations = INT_MAX;
 
-  int opt;
+  int opt, val;
   while ((opt = getopt(argc, argv, "hc:t:i:w:I:")) != -1) {
     switch (opt) {
     case 'h':
@@ -91,7 +91,9 @@ int main(int argc, char *argv[]) {
 
     case 'i':
       assert(optarg);
-      max_iterations = atoi(optarg);
+      val = atoi(optarg);
+      if (val != 0)
+        max_iterations = val;
       break;
 
     case 'w':
@@ -108,9 +110,6 @@ int main(int argc, char *argv[]) {
 
   DataSet dataSet;
   readFile(dataSet, input);
-
-  vector<Point> points = dataSet.getPoints();
-  vector<float> vals = points[0].vals;
 
   clock_t start;
   double duration;
@@ -137,26 +136,16 @@ void kmeans(DataSet dataSet, int k) {
     oldCentroids = centroids;
 
 #ifdef DEBUG
-    cout << "Iteration" << iterations << endl;
+    cout << "Iteration " << iterations << endl;
 #endif
-    iterations++;
-
     labels = findNearestCentroids(dataSet, centroids);
 
     centroids = averageLabeledCentroids(dataSet, labels, centroids);
-  } while (iterations < max_iterations && !converged(centroids, oldCentroids));
+  } while (++iterations < max_iterations &&
+           !converged(centroids, oldCentroids));
 
   cout << endl << "Completed in " << iterations << " iterations." << endl;
-  for (const auto &point : centroids) {
-    cout << "[";
-    for (int i = 0; i < point.vals.size() - 1; ++i) {
-      float val = point.vals[i];
-      cout << val << ", ";
-    }
-    cout << point.vals[point.vals.size() - 1];
-    cout << "]" << endl;
-  }
-  cout << endl;
+  printPointVector(centroids);  
 }
 
 vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet) {
@@ -167,17 +156,23 @@ vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet) {
   for (int i = 0; i < k; ++i) {
     int index;
 
-    // Generate rand index
+    // Generate rand index that hasn't been used
     do {
-      index = (((int)rand()) % points.size());
+      srand( time(NULL) );
+      index = ((int)rand()) % points.size();
     } while (find(indicesUsed.begin(), indicesUsed.end(), index) !=
              indicesUsed.end());
 
     indicesUsed.push_back(index);
 
-    Point p(points[index]);
+    Point p(points[index].vals);
     centroids.push_back(p);
   }
+
+#ifdef DEBUG
+  cout << "Initialized centroids to " << endl;
+  printPointVector(centroids);
+#endif
 
   return centroids;
 }
@@ -192,22 +187,20 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
         findNearestCentroid(point, centroids); // returns index of the centroid
 
     // cout << "Point " << i << " Nearest Cent: " << nearestCentroid << endl;
-
-    map[point] = nearestCentroid;
-
-    /*
     pair<point::pointMap::iterator,bool> ret;
-    ret = map.insert(pair<Point, int>(point, nearestCentroid));
+    ret = map.insert(make_pair(point, nearestCentroid));
     if (ret.second == false) {
-      cout << "Big fucking problems" << endl;
       cout << i << " already exists with val of " << ret.first->second << endl;
+      map[point] = nearestCentroid;
+      cout << "Now " << i << " is " << map.at(point) << endl;
     }
-    */
 
     // cout << map.at(point) << endl;
     assert(map.at(point) == nearestCentroid);
+    if (map.size() <= i)
+      cout << "MAP IS SIZE " << map.size() << "\nI IS SIZE " << i << endl;
   }
-
+/*
 #ifdef DEBUG
   for (const auto &pair : map) {
     cout << endl << "Point: [";
@@ -218,7 +211,7 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
     cout << "Index: " << pair.second << endl;
   }
 #endif
-
+*/
   return map;
 }
 
@@ -264,8 +257,8 @@ int findNearestCentroid(Point point, vector<Point> centroids) {
 vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
                                       vector<Point> centroids) {
 #ifdef DEBUG
-  cout << "Initial size of: " << centroids.size() << endl;
-  cout << "Initial size of elem 0: " << centroids[0].vals.size() << endl;
+  cout << "Initial size of centroids: " << centroids.size() << endl;
+  cout << "Initial size of elem 0 of centroid: " << centroids[0].vals.size() << endl;
 #endif
 
   vector<Point> updatedCentroids;
@@ -278,7 +271,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     *((int *)sums + i) = 0;
 
   for (int i = 0; i < centroids.size(); ++i)
-    numPointsPerCentroid[i] = 0;
+    *((int *)numPointsPerCentroid + i) = 0;
 
 #ifdef DEBUG
   cout << "Size of sums elem: " << (sizeof(sums[0]) / sizeof(sums[0][0]))
@@ -289,13 +282,14 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     Point point = pair.first;
     int centroidIndex = pair.second;
 
+    /*
 #ifdef DEBUG
     cout << "Point: [";
     for (float val : point.vals)
       cout << val << ",";
     cout << "]" << endl;
     cout << "Centroid index: " << centroidIndex << endl;
-#endif
+#endif */
 
     numPointsPerCentroid[centroidIndex]++;
 
@@ -309,11 +303,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
 
     float *sum = sums[i];
 
-#ifdef DEBUG
-    cout << "Values of nums:" << endl;
-#endif
-
-    // cout << "Centroid " << i << ": " << numPointsPerCentroid[i] << endl;
+    cout << "Centroid " << i << ": " << numPointsPerCentroid[i] << endl;
 
     for (int j = 0; j < dataSet.getDimensions(); ++j) {
       float finalNum = sum[j];
@@ -323,25 +313,17 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
       nums.push_back(finalNum);
     }
 
-#ifdef DEBUG
-    cout << "Nums size: " << nums.size() << endl;
-#endif
-
     Point point(nums);
-
-#ifdef DEBUG
-    cout << "Points size: " << point.vals.size() << endl;
-#endif
-
     updatedCentroids.push_back(point);
   }
 
-// cout << endl;
+    // cout << endl;
 
 #ifdef DEBUG
   cout << "Final size of: " << updatedCentroids.size() << endl;
   cout << "Final size of elem 0: " << updatedCentroids[0].vals.size() << endl
        << endl;
+  printPointVector(updatedCentroids);
 #endif
 
   return updatedCentroids;
@@ -357,9 +339,21 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
     Point oldPoint = oldCentroids[i];
     for (int j = 0; j < curPoint.vals.size(); ++j)
       // if any haven't converged, not done
-      if (curPoint.vals[j] - oldPoint.vals[j] > threshold)
+      if (fabs(curPoint.vals[j] - oldPoint.vals[j]) > threshold) {
+#ifdef DEBUG
+        cout << "\ncur at " << i  << ": " << curPoint.vals[j] << "\nold: " << oldPoint.vals[j]
+             << endl;
+#endif
         return false;
+      }
   }
+
+#ifdef DEBUG
+  cout << "Final transformation\n";
+  printPointVector(oldCentroids);
+  cout << "->\n";
+  printPointVector(centroids);
+#endif
 
   return true;
 }
@@ -426,4 +420,17 @@ void print_help() {
        << "kmeans -c clusters -t threshold -i iterations -w workers -I "
           "path/to/input"
        << endl;
+}
+
+void printPointVector (vector<Point> points) {
+  for (const auto &point : points) {
+    cout << "[";
+    for (int i = 0; i < point.vals.size() - 1; ++i) {
+      float val = point.vals[i];
+      cout << val << ", ";
+    }
+    cout << point.vals[point.vals.size() - 1];
+    cout << "]" << endl;
+  }
+  cout << endl;
 }

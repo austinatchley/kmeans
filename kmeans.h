@@ -2,7 +2,7 @@
 #define KMEANS
 
 // uncomment this to enable debug output
-//#define DEBUG
+#define DEBUG
 
 #define DEFAULT_THRESH 0.0000001f
 
@@ -32,37 +32,38 @@ public:
       total += n;
   };
 
-  int getDimensions();
+  const int getDimensions();
 
   bool operator<(const Point &other) const;
-  bool operator=(const Point &other) const;
+  bool operator>(const Point &other) const;
+  bool operator==(const Point &other) const;
+  bool operator!=(const Point &other) const;
 };
 
 class DataSet {
 public:
-  int numFeatures();
   int getDimensions();
   void setPoints(vector<Point>);
-  vector<Point> getPoints();
+  const vector<Point> getPoints();
 
 private:
   vector<Point> points;
 };
 
 bool Point::operator<(const Point &other) const {
-  return this->total < other.total;
+  return this->vals < other.vals;
 }
 
-bool Point::operator=(const Point &other) const {
-  if (this->vals.size() != other.vals.size())
-    return false;
+bool Point::operator>(const Point &other) const {
+  return this->vals > other.vals;
+}
 
-  for (int i = 0; i < this->vals.size(); ++i) {
-    if (this->vals[i] != other.vals[i])
-      return false;
-  }
+bool Point::operator==(const Point &other) const {
+  return this->vals == other.vals;
+}
 
-  return true;
+bool Point::operator!=(const Point &other) const {
+  return this->vals != other.vals;
 }
 
 namespace point {

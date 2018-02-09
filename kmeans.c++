@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
   kmeans(dataSet, clusters);
   duration = (clock() - start) / (double)CLOCKS_PER_SEC;
 
-  cout << "Duration: " << duration << endl;
+  cout << duration << endl;
 }
 
 void kmeans(DataSet dataSet, int k) {
@@ -144,7 +144,7 @@ void kmeans(DataSet dataSet, int k) {
   } while (++iterations < max_iterations &&
            !converged(centroids, oldCentroids));
 
-  cout << endl << "Completed in " << iterations << " iterations." << endl;
+  cout << iterations << endl;
   printPointVector(centroids);
 }
 
@@ -190,15 +190,16 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
     pair<point::pointMap::iterator, bool> ret;
     ret = map.insert(make_pair(point, nearestCentroid));
     if (ret.second == false) {
-      cout << i << " already exists with val of " << ret.first->second << endl;
       map[point] = nearestCentroid;
+#ifdef DEBUG
+      cout << i << " already exists with val of " << ret.first->second << endl;
       cout << "Now " << i << " is " << map.at(point) << endl;
+#endif
     }
 
     // cout << map.at(point) << endl;
     assert(map.at(point) == nearestCentroid);
-    if (map.size() <= i)
-      cout << "MAP IS SIZE " << map.size() << "\nI IS SIZE " << i << endl;
+    assert (map.size() >= i);
   }
   /*
   #ifdef DEBUG
@@ -303,8 +304,6 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     vector<float> nums;
 
     float *sum = sums[i];
-
-    cout << "Centroid " << i << ": " << numPointsPerCentroid[i] << endl;
 
     for (int j = 0; j < dataSet.getDimensions(); ++j) {
       float finalNum = sum[j];
@@ -425,13 +424,12 @@ void print_help() {
 
 void printPointVector(vector<Point> points) {
   for (const auto &point : points) {
-    cout << "[";
+    // cout << "[";
     for (int i = 0; i < point.vals.size() - 1; ++i) {
       float val = point.vals[i];
       cout << val << ", ";
     }
-    cout << point.vals[point.vals.size() - 1];
-    cout << "]" << endl;
+    cout << point.vals[point.vals.size() - 1] << endl;
+    // cout << "]" << endl;
   }
-  cout << endl;
 }

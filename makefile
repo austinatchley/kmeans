@@ -12,7 +12,7 @@ format:
 	clang-format -i kmeans.h
 
 run: kmeans
-	./kmeans.out -c 4 -t 0.0000001 -i 20 -w 1 -I "sample.in"
+	./kmeans.out -c 4 -t 0.0000001 -i 20 -w 1 -I "sample/sample.in"
 
 debug:
 	g++ -g kmeans.c++ -o kmeans.out --std=c++0x

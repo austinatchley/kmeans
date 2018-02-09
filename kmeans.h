@@ -2,7 +2,7 @@
 #define KMEANS
 
 // uncomment this to enable debug output
-#define DEBUG
+// #define DEBUG
 
 #define DEFAULT_THRESH 0.0000001f
 

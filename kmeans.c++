@@ -144,8 +144,10 @@ void kmeans(DataSet dataSet, int k) {
   } while (++iterations < max_iterations &&
            !converged(centroids, oldCentroids));
 
-  cout << iterations << endl;
+  cout << dataSet.getPoints().size() << endl;
+  printPointVector(dataSet.getPoints());
   printPointVector(centroids);
+  cout << iterations << endl;
 }
 
 vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet) {
@@ -382,7 +384,7 @@ DataSet &readFile(DataSet &ds, string filePath) {
 
   string line;
   getline(inFile, line);
-  while (--size) {
+  while (size--) {
     getline(inFile, line);
     vector<float> nums;
     istringstream is(line);

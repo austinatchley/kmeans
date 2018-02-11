@@ -121,8 +121,9 @@ int main(int argc, char *argv[]) {
   start = clock();
 
   pthread_t worker;
-  struct kmeans_args *arg = (struct kmeans_args *) malloc(sizeof(struct kmeans_args));
-  int ret = pthread_create(&worker, NULL, kmeans, (void*)arg);
+  void *arg = reinterpret_cast<void *>(&dataSet);
+
+  int ret = pthread_create(&worker, NULL, &kmeans, arg);
   
   pthread_join(worker, NULL);
   //kmeans(dataSet, clusters);
@@ -132,14 +133,12 @@ int main(int argc, char *argv[]) {
 }
 
 void *kmeans(void *arg) {
-  struct kmeans_args *args = static_cast<struct kmeans_args *>(arg);
-  DataSet dataSet = args->dataSet;
-  int k = args->k;
+  DataSet *dataSet = reinterpret_cast<DataSet*>(arg);
 
   int iterations = 0;
 
-  int dimensions = dataSet.getDimensions();
-  vector<Point> centroids = randomCentroids(dimensions, k, dataSet);
+  int dimensions = dataSet->getDimensions();
+  vector<Point> centroids = randomCentroids(dimensions, clusters, *dataSet);
 
   vector<Point> oldCentroids;
   bool done = false;
@@ -151,14 +150,14 @@ void *kmeans(void *arg) {
 #ifdef DEBUG
     cout << "Iteration " << iterations << endl;
 #endif
-    labels = findNearestCentroids(dataSet, centroids);
+    labels = findNearestCentroids(*dataSet, centroids);
 
-    centroids = averageLabeledCentroids(dataSet, labels, centroids);
+    centroids = averageLabeledCentroids(*dataSet, labels, centroids);
   } while (++iterations < max_iterations &&
            !converged(centroids, oldCentroids));
 
-  cout << dataSet.getPoints().size() << endl;
-  printPointVector(dataSet.getPoints());
+  cout << dataSet->getPoints().size() << endl;
+  printPointVector(dataSet->getPoints());
   printPointVector(centroids);
   cout << iterations << endl;
 }

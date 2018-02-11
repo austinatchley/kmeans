@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <pthread.h>
 #include <assert.h>
 #include <cfloat>
 #include <cmath>
@@ -29,13 +30,11 @@ float threshold;
 int workers;
 string input;
 
-int iterations;
-
 /*
  * Function Prototypes
  */
 
-void kmeans(DataSet dataSet, int k);
+void *kmeans(void *arg);
 
 vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet);
 point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids);
@@ -49,6 +48,11 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids);
 void print_help();
 DataSet &readFile(DataSet &ds, string filePath);
 void printPointVector(vector<Point> points);
+
+struct kmeans_args {
+  DataSet dataSet;
+  int k;
+};
 
 /*
  * Class Functions
@@ -116,14 +120,23 @@ int main(int argc, char *argv[]) {
 
   start = clock();
 
-  kmeans(dataSet, clusters);
+  pthread_t worker;
+  struct kmeans_args *arg = (struct kmeans_args *) malloc(sizeof(struct kmeans_args));
+  int ret = pthread_create(&worker, NULL, kmeans, (void*)arg);
+  
+  pthread_join(worker, NULL);
+  //kmeans(dataSet, clusters);
   duration = (clock() - start) / (double)CLOCKS_PER_SEC;
 
   cout << duration << endl;
 }
 
-void kmeans(DataSet dataSet, int k) {
-  iterations = 0;
+void *kmeans(void *arg) {
+  struct kmeans_args *args = static_cast<struct kmeans_args *>(arg);
+  DataSet dataSet = args->dataSet;
+  int k = args->k;
+
+  int iterations = 0;
 
   int dimensions = dataSet.getDimensions();
   vector<Point> centroids = randomCentroids(dimensions, k, dataSet);
@@ -201,7 +214,7 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
 
     // cout << map.at(point) << endl;
     assert(map.at(point) == nearestCentroid);
-    assert(map.size() >= i);
+    assert (map.size() >= i);
   }
   /*
   #ifdef DEBUG

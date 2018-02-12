@@ -41,6 +41,7 @@ public:
   int getDimensions();
   void setPoints(vector<Point>);
   const vector<Point> getPoints();
+  const int numPoints();
 
 private:
   vector<Point> points;

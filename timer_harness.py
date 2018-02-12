@@ -50,13 +50,14 @@ def do_test(i, cores):
     for row in reader:
         data.append(' '.join(element.rstrip() for element in row))
 
-    points = int(data[0])
-    print('Points:\t', points)
-    print('Iterations:\t', data[1])
-    print('Duration:\t', data[2])
-    times.insert(i, float(data[2]))
+    if i != -1:
+        print('Points:\t', data[0])
+        print('Iterations:\t', data[1])
+        print('Duration:\t', data[2])
+        times.insert(i, float(data[2]))
 
-for core in range(cores):
+for core in range(1, cores+1):
+    do_test(-1, core)
     for i in range(TESTS):
         print("\nIteration ", i, "with ", core, "cores.")
         do_test(i, core)

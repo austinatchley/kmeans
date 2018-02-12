@@ -201,9 +201,7 @@ void *kmeans(void *arg) {
 #endif
 
     if (num_thread == 0) {
-      pthread_mutex_lock(&lock);
       fill(numPointsPerCentroid.begin(), numPointsPerCentroid.end(), 0);
-      pthread_mutex_unlock(&lock);
     }
     pthread_barrier_wait(&barrier);
 
@@ -391,7 +389,6 @@ vector<Point> averageLabeledCentroids(DataSet *dataSet, point::pointMap &labels,
   for (int i = 0; i < centroids.size(); ++i) {
     vector<double> nums;
 
-    pthread_mutex_lock(&lock);
     for (int j = 0; j < dataSet->getDimensions(); ++j) {
       double finalNum = sums[i][j];
       if (numPointsPerCentroid[i] > 0)
@@ -404,7 +401,6 @@ vector<Point> averageLabeledCentroids(DataSet *dataSet, point::pointMap &labels,
       }
       nums.push_back(finalNum);
     }
-    pthread_mutex_unlock(&lock);
 
     Point point(nums);
     updatedCentroids.push_back(point);

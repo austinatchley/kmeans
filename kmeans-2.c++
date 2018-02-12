@@ -55,7 +55,7 @@ bool converged(vector<Point> &centroids, vector<Point> &oldCentroids);
 
 void print_help();
 DataSet *readFile(DataSet *ds, string filePath);
-void printPointVector(vector<Point> points);
+void printPointVector(const vector<Point> &points);
 vector<DataSet> splitDataSet(DataSet &total, int workers);
 
 typedef struct args {
@@ -151,12 +151,14 @@ int main(int argc, char *argv[]) {
   numPointsPerCentroid = vector<int>(centroids.size(), 0);
   break_flag = false;
 
-  start = clock();
-
   for (int i = 0; i < workers; ++i) {
     args *args_i = new args(&dataSets[i], centroids, i);
     void *arg = static_cast<void *>(args_i);
+  }
 
+  start = clock();
+
+  for (int i = 0; i < workers; ++i) {
     int ret = pthread_create(&workers_list[i], NULL, &kmeans, arg);
     if (ret)
       cerr << "Couldn't create thread" << i << endl;
@@ -221,10 +223,7 @@ void *kmeans(void *arg) {
     pthread_mutex_lock(&lock);
     for (int i = 0; i < centroids.size(); ++i)
       for (int j = 0; j < newCentroids[i].vals.size(); ++j) {
-        assert(!isnan(newCentroids[i].vals[j]));
         centroids[i].vals[j] += newCentroids[i].vals[j];
-        //        cout << "centroids at " << i << " val " << j << " is now "
-        //             << centroids[i].vals[j] << endl;
       }
     pthread_mutex_unlock(&lock);
 
@@ -501,7 +500,7 @@ void print_help() {
        << endl;
 }
 
-void printPointVector(vector<Point> points) {
+void printPointVector(const vector<Point> &points) {
   for (const auto &point : points) {
     for (int i = 0; i < point.vals.size() - 1; ++i) {
       double val = point.vals[i];

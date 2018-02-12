@@ -29,3 +29,6 @@ debug:
 
 add: format
 	git add .
+
+yapf:
+	yapf -i timer_harness.py harness.py 

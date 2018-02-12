@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
   DataSet *dataSet = new DataSet();
   readFile(dataSet, input);
   int numPoints = dataSet->numPoints();
-  
+
   cout << numPoints << endl;
 
   vector<DataSet> dataSets = splitDataSet(*dataSet, workers);
@@ -231,15 +231,15 @@ void *kmeans(void *arg) {
     pthread_mutex_unlock(&lock);
 
     iterations++;
-    if (num_thread == 0) {
-      if (iterations >= max_iterations || converged(centroids, oldCentroids)) {
+    if (num_thread == 0)
+      if (iterations >= max_iterations || converged(centroids, oldCentroids))
         break_flag = true;
-        break;
-      }
-    } else if (break_flag)
-      break;
 
     pthread_barrier_wait(&barrier);
+
+    if (break_flag)
+      break;
+
   } while (true);
 
   if (num_thread == 0)

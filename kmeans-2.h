@@ -25,12 +25,8 @@ using namespace std;
 class Point {
 public:
   vector<double> vals;
-  double total;
 
-  Point(vector<double> newVals) : vals(newVals) {
-    for (int n : vals)
-      total += n;
-  };
+  Point(vector<double> newVals) : vals(newVals) {}
 
   const int getDimensions();
 

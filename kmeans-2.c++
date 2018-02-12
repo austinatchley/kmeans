@@ -30,6 +30,9 @@ double threshold;
 int workers;
 string input;
 
+int *numPointsPerCentroid;
+bool cleared;
+
 pthread_mutex_t lock;
 //pthread_spinthread_t lock;
 pthread_barrier_t barrier;
@@ -40,19 +43,19 @@ pthread_barrier_t barrier;
 
 void *kmeans(void *arg);
 
-vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet);
-point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids);
-int findNearestCentroid(Point point, vector<Point> centroids);
+vector<Point> randomCentroids(int dimensions, int k, DataSet &dataSet);
+point::pointMap findNearestCentroids(DataSet &dataSet, vector<Point> &centroids);
+int findNearestCentroid(Point &point, vector<Point> &centroids);
 
-vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
-                                      vector<Point> centroids);
+vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
+                                      vector<Point> &centroids);
 
-bool converged(vector<Point> centroids, vector<Point> oldCentroids);
+bool converged(vector<Point> &centroids, vector<Point> &oldCentroids);
 
 void print_help();
 DataSet &readFile(DataSet &ds, string filePath);
 void printPointVector(vector<Point> points);
-vector<DataSet> splitDataSet(DataSet total, int workers);
+vector<DataSet> splitDataSet(DataSet &total, int workers);
 
 /*
  * Class Functions
@@ -114,6 +117,8 @@ int main(int argc, char *argv[]) {
 
   DataSet dataSet;
   readFile(dataSet, input);
+  vector<Point> dataPoints = dataSet.getPoints();
+  int numPoints = dataPoints.size();
   vector<DataSet> dataSets = splitDataSet(dataSet, workers);
   assert (dataSets.size() == workers);
 
@@ -127,6 +132,10 @@ int main(int argc, char *argv[]) {
 
   vector<Point> centroids = randomCentroids(dataSet.getDimensions(), clusters, dataSet);
   
+  numPointsPerCentroid = (int *) malloc(centroids.size()*sizeof(int));
+  for (int i = 0; i < centroids.size(); ++i)
+    *((int *)numPointsPerCentroid + i) = 0;
+  
   start = clock();
 
   for (int i = 0; i < workers; ++i) {
@@ -138,10 +147,16 @@ int main(int argc, char *argv[]) {
       cerr << "Couldn't create thread" << i << endl;
   }
 
+  int retval;
   for (int i = 0; i < workers; ++i)
-    pthread_join(workers_list[i], NULL);
+    pthread_join(workers_list[i], (void **)&retval);
   
   duration = (clock() - start) / (double)CLOCKS_PER_SEC;
+  
+  cout << numPoints << endl;
+  printPointVector(dataPoints);
+  printPointVector(centroids);
+  cout << retval << endl; //iterations
 
   cout << duration << endl;
 }
@@ -161,6 +176,15 @@ void *kmeans(void *arg) {
 
   do {
     oldCentroids = *centroids;
+    
+    pthread_mutex_lock(&lock);
+    if (!cleared) {
+      vector<double> zero(dimensions, 0.0);
+      for (int i = 0; i < centroids->size(); ++i)
+        (*centroids)[i] = Point(zero);
+      cleared = true;
+    }
+    pthread_mutex_unlock(&lock);
 
 #ifdef DEBUG
     cout << "Iteration " << iterations << endl;
@@ -169,19 +193,32 @@ void *kmeans(void *arg) {
     labels = findNearestCentroids(*dataSet, *centroids);
     pthread_barrier_wait(&barrier);
 
+    for(int i = 0; i < centroids->size(); ++i)
+      numPointsPerCentroid[i] = 0;
+
     vector<Point> newCentroids = averageLabeledCentroids(*dataSet, labels, *centroids);
     pthread_barrier_wait(&barrier);
 
-  } while (++iterations < max_iterations &&
-           !converged(*centroids, oldCentroids));
+    pthread_mutex_lock(&lock);
+    for (int i = 0; i < centroids->size(); ++i)
+      for (int j = 0; j < newCentroids[i].vals.size(); ++j) {
+        (*centroids)[i].vals[j] += newCentroids[i].vals[j];
+        cout << "centroids at " << i << " val " << j << " is now " << (*centroids)[i].vals[j] << endl;
+      }
+    pthread_mutex_unlock(&lock);
 
-  cout << dataSet->getPoints().size() << endl;
-  printPointVector(dataSet->getPoints());
-  printPointVector(*centroids);
-  cout << iterations << endl;
+    cleared = false;
+    if (++iterations >= max_iterations ||
+           converged(*centroids, oldCentroids))
+      break;
+    
+    pthread_barrier_wait(&barrier);
+  } while (true);
+  
+  pthread_exit(&iterations);
 }
 
-vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet) {
+vector<Point> randomCentroids(int dimensions, int k, DataSet &dataSet) {
   vector<Point> centroids;
   vector<Point> points = dataSet.getPoints();
   vector<int> indicesUsed;
@@ -210,7 +247,7 @@ vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet) {
   return centroids;
 }
 
-point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
+point::pointMap findNearestCentroids(DataSet &dataSet, vector<Point> &centroids) {
   point::pointMap map;
   vector<Point> points = dataSet.getPoints();
 
@@ -249,7 +286,8 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
   return map;
 }
 
-int findNearestCentroid(Point point, vector<Point> centroids) {
+int findNearestCentroid(Point &point, vector<Point> &centroids) {
+  pthread_mutex_lock(&lock);
   assert(centroids.size() > 0);
 
   double min_dist = 0;
@@ -267,8 +305,8 @@ int findNearestCentroid(Point point, vector<Point> centroids) {
       assert (sum >= 0);
       double old_sum = sum;
       double square = pow(centroids[i].vals[j] - point.vals[j], 2.0);
-      assert (abs(square) <= numeric_limits<double>::max() - abs(sum));
-        //cout << "Square: " << square << ", Current Sum: " << sum << endl;
+      if (abs(square) > numeric_limits<double>::max() - abs(sum))
+        cout << "Square: " << square << ", Current Sum: " << sum << endl;
       
       assert (square >= 0);
       sum += square;
@@ -296,11 +334,12 @@ int findNearestCentroid(Point point, vector<Point> centroids) {
     assert(index >= 0);
     assert(index < centroids.size());
   }
+  pthread_mutex_unlock(&lock);
   return index; // returns the index of the centroid in the centroids vector
 }
 
-vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
-                                      vector<Point> centroids) {
+vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
+                                      vector<Point> &centroids) {
 #ifdef DEBUG
   cout << "Initial size of centroids: " << centroids.size() << endl;
   cout << "Initial size of elem 0 of centroid: " << centroids[0].vals.size()
@@ -308,16 +347,19 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
 #endif
 
   vector<Point> updatedCentroids;
-
+   
+  pthread_mutex_lock(&lock);
+  
   // indices correspond to centroids
   double sums[centroids.size()][dataSet.getDimensions()];
-  int numPointsPerCentroid[centroids.size()];
-
+  int localNumPointsPerCentroid[centroids.size()];
+  
+  for (int i = 0; i < centroids.size(); ++i)
+    *((int *)localNumPointsPerCentroid + i) = 0;
+  
   for (int i = 0; i < centroids.size() * dataSet.getDimensions(); ++i)
     *((int *)sums + i) = 0;
 
-  for (int i = 0; i < centroids.size(); ++i)
-    *((int *)numPointsPerCentroid + i) = 0;
 
 #ifdef DEBUG
   cout << "Size of sums elem: " << (sizeof(sums[0]) / sizeof(sums[0][0]))
@@ -336,13 +378,18 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     cout << "]" << endl;
     cout << "Centroid index: " << centroidIndex << endl;
 #endif */
-
-    numPointsPerCentroid[centroidIndex]++;
+    
+    localNumPointsPerCentroid[centroidIndex]++;
 
     double *centroidSum = sums[centroidIndex];
     for (int i = 0; i < dataSet.getDimensions(); ++i)
       centroidSum[i] += point.vals[i];
   }
+
+  //pthread_mutex_lock(&lock);
+  for (int i = 0; i < centroids.size(); ++i)
+    numPointsPerCentroid[i] += localNumPointsPerCentroid[i];
+  //pthread_mutex_unlock(&lock);
 
   for (int i = 0; i < centroids.size(); ++i) {
     vector<double> nums;
@@ -370,10 +417,12 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
   printPointVector(updatedCentroids);
 #endif
 
+  pthread_mutex_unlock(&lock);
   return updatedCentroids;
 }
 
-bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
+bool converged(vector<Point> &centroids, vector<Point> &oldCentroids) {
+  pthread_mutex_lock(&lock);
   assert(centroids.size() == oldCentroids.size());
 
   assert(centroids[0].vals.size() == oldCentroids[0].vals.size());
@@ -388,6 +437,7 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
         cout << "\ncur at " << i << ": " << curPoint.vals[j]
              << "\nold: " << oldPoint.vals[j] << endl;
 #endif
+        pthread_mutex_unlock(&lock);
         return false;
       }
   }
@@ -399,6 +449,7 @@ bool converged(vector<Point> centroids, vector<Point> oldCentroids) {
   printPointVector(centroids);
 #endif
 
+  pthread_mutex_unlock(&lock);
   return true;
 }
 
@@ -478,7 +529,7 @@ void printPointVector(vector<Point> points) {
   }
 }
 
-vector<DataSet> splitDataSet(DataSet total, int workers) {
+vector<DataSet> splitDataSet(DataSet &total, int workers) {
   vector<DataSet> sets;
   vector<Point> points = total.getPoints();
   int size = points.size();

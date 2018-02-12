@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "kmeans.h"
+#include "kmeans-2.h"
 
 using namespace std;
 
@@ -26,9 +26,12 @@ using namespace std;
 
 int clusters;
 int max_iterations;
-float threshold;
+double threshold;
 int workers;
 string input;
+
+pthread_mutex_t lock;
+//pthread_spinthread_t lock;
 
 /*
  * Function Prototypes
@@ -121,7 +124,9 @@ int main(int argc, char *argv[]) {
   start = clock();
 
   pthread_t worker;
-  void *arg = reinterpret_cast<void *>(&dataSet);
+  vector<Point> centroids = randomCentroids(dataSet.getDimensions(), clusters, dataSet);
+  pair<DataSet*, vector<Point>*> arg_pair = make_pair(&dataSet, &centroids);
+  void *arg = reinterpret_cast<void *>(&arg_pair);
 
   int ret = pthread_create(&worker, NULL, &kmeans, arg);
   
@@ -133,32 +138,33 @@ int main(int argc, char *argv[]) {
 }
 
 void *kmeans(void *arg) {
-  DataSet *dataSet = reinterpret_cast<DataSet*>(arg);
+  pair<DataSet*, vector<Point>*> *arg_pair = reinterpret_cast<pair<DataSet*, vector<Point>*> *>(arg);
+  DataSet *dataSet = arg_pair->first;
+  vector<Point> *centroids = arg_pair->second;
 
   int iterations = 0;
 
   int dimensions = dataSet->getDimensions();
-  vector<Point> centroids = randomCentroids(dimensions, clusters, *dataSet);
 
   vector<Point> oldCentroids;
   bool done = false;
   point::pointMap labels;
 
   do {
-    oldCentroids = centroids;
+    oldCentroids = *centroids;
 
 #ifdef DEBUG
     cout << "Iteration " << iterations << endl;
 #endif
-    labels = findNearestCentroids(*dataSet, centroids);
+    labels = findNearestCentroids(*dataSet, *centroids);
 
-    centroids = averageLabeledCentroids(*dataSet, labels, centroids);
+    *centroids = averageLabeledCentroids(*dataSet, labels, *centroids);
   } while (++iterations < max_iterations &&
-           !converged(centroids, oldCentroids));
+           !converged(*centroids, oldCentroids));
 
   cout << dataSet->getPoints().size() << endl;
   printPointVector(dataSet->getPoints());
-  printPointVector(centroids);
+  printPointVector(*centroids);
   cout << iterations << endl;
 }
 
@@ -219,7 +225,7 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
   #ifdef DEBUG
     for (const auto &pair : map) {
       cout << endl << "Point: [";
-      for (float val : pair.first.vals)
+      for (double val : pair.first.vals)
         cout << val << ",";
       cout << "]" << endl;
 
@@ -280,7 +286,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
   vector<Point> updatedCentroids;
 
   // indices correspond to centroids
-  float sums[centroids.size()][dataSet.getDimensions()];
+  double sums[centroids.size()][dataSet.getDimensions()];
   int numPointsPerCentroid[centroids.size()];
 
   for (int i = 0; i < centroids.size() * dataSet.getDimensions(); ++i)
@@ -301,7 +307,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     /*
 #ifdef DEBUG
     cout << "Point: [";
-    for (float val : point.vals)
+    for (double val : point.vals)
       cout << val << ",";
     cout << "]" << endl;
     cout << "Centroid index: " << centroidIndex << endl;
@@ -309,18 +315,18 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
 
     numPointsPerCentroid[centroidIndex]++;
 
-    float *centroidSum = sums[centroidIndex];
+    double *centroidSum = sums[centroidIndex];
     for (int i = 0; i < dataSet.getDimensions(); ++i)
       centroidSum[i] += point.vals[i];
   }
 
   for (int i = 0; i < centroids.size(); ++i) {
-    vector<float> nums;
+    vector<double> nums;
 
-    float *sum = sums[i];
+    double *sum = sums[i];
 
     for (int j = 0; j < dataSet.getDimensions(); ++j) {
-      float finalNum = sum[j];
+      double finalNum = sum[j];
       if (numPointsPerCentroid[i] > 0)
         finalNum /= numPointsPerCentroid[i];
 
@@ -398,7 +404,7 @@ DataSet &readFile(DataSet &ds, string filePath) {
   getline(inFile, line);
   while (size--) {
     getline(inFile, line);
-    vector<float> nums;
+    vector<double> nums;
     istringstream is(line);
 
     int lineNumber;
@@ -406,7 +412,7 @@ DataSet &readFile(DataSet &ds, string filePath) {
 
     assert(points.size() == lineNumber - 1);
 
-    float num;
+    double num;
     while (is >> num)
       nums.push_back(num);
 
@@ -420,7 +426,7 @@ DataSet &readFile(DataSet &ds, string filePath) {
 
   /*cout << "vector points of size" << points.size() << " contains:";
   for (unsigned i = 0; i < points.size(); ++i) {
-    vector<float> p = points[i].vals;
+    vector<double> p = points[i].vals;
     for(unsigned j = 0; j < p.size(); ++j)
       cout << ' ' << p[j] << endl;
   }
@@ -440,7 +446,7 @@ void printPointVector(vector<Point> points) {
   for (const auto &point : points) {
     // cout << "[";
     for (int i = 0; i < point.vals.size() - 1; ++i) {
-      float val = point.vals[i];
+      double val = point.vals[i];
       cout << val << ", ";
     }
     cout << point.vals[point.vals.size() - 1] << endl;

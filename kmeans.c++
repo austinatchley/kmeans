@@ -319,7 +319,7 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     updatedCentroids.push_back(point);
   }
 
-// cout << endl;
+    // cout << endl;
 
 #ifdef DEBUG
   cout << "Final size of: " << updatedCentroids.size() << endl;

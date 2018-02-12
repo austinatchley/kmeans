@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 from io import StringIO
 
-if len(sys.argv) < 6:
-    print("./harness [version] -c [clusters] -t [threshold] -i [iterations] -w [workers] -I [path/to/file]");
+if len(sys.argv) < 7:
+    print("./harness [version] -c [clusters] -t [threshold] -i [iterations] -w [workers] -I [path/to/file] [test cases]");
     sys.exit(0);
 
 if sys.argv[1] != '1':
@@ -22,6 +22,30 @@ args = "./kmeans" + version  + ".out -c " + sys.argv[2] +    \
     " -i " + sys.argv[4]  +                 \
     " -w " + sys.argv[5]  +                 \
     " -I " + sys.argv[6]
+
+tests = int(sys.argv[7])
+
+def do_test():
+    arg_list = args.split()
+    output = subprocess.check_output(args.split())
+    result = output.decode('utf-8')
+
+    f = StringIO(result)
+    reader = csv.reader(f, delimiter=',')
+    data = []
+    for row in reader:
+        data.append(' '.join(element.rstrip() for element in row))
+
+    points = int(data[0])
+    print('Points:\t', points)
+    print('Iterations:\t', data[1])
+    print('Duration:\t', data[2])
+
+
+for i in range(tests):
+    print("\nIteration ", i)
+    do_test()
+
 
 output = subprocess.check_output(args.split())
 result = output.decode('utf-8')

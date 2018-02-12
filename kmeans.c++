@@ -35,7 +35,7 @@ int iterations;
  * Function Prototypes
  */
 
-void kmeans(DataSet dataSet, int k);
+vector<Point> kmeans(DataSet dataSet, int k);
 
 vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet);
 point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids);
@@ -116,13 +116,15 @@ int main(int argc, char *argv[]) {
 
   start = clock();
 
-  kmeans(dataSet, clusters);
+  vector<Point> centroids = kmeans(dataSet, clusters);
   duration = (clock() - start) / (double)CLOCKS_PER_SEC;
 
   cout << duration << endl;
+  printPointVector(dataSet.getPoints());
+  printPointVector(centroids);
 }
 
-void kmeans(DataSet dataSet, int k) {
+vector<Point> kmeans(DataSet dataSet, int k) {
   iterations = 0;
 
   int dimensions = dataSet.getDimensions();
@@ -145,9 +147,9 @@ void kmeans(DataSet dataSet, int k) {
            !converged(centroids, oldCentroids));
 
   cout << dataSet.getPoints().size() << endl;
-  printPointVector(dataSet.getPoints());
-  printPointVector(centroids);
   cout << iterations << endl;
+
+  return centroids;
 }
 
 vector<Point> randomCentroids(int dimensions, int k, DataSet dataSet) {

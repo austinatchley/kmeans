@@ -131,6 +131,8 @@ int main(int argc, char *argv[]) {
   DataSet *dataSet = new DataSet();
   readFile(dataSet, input);
   int numPoints = dataSet->numPoints();
+  
+  cout << numPoints << endl;
 
   vector<DataSet> dataSets = splitDataSet(*dataSet, workers);
   assert(dataSets.size() == workers);

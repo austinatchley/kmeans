@@ -32,9 +32,10 @@ string input;
 
 vector<int> numPointsPerCentroid;
 bool break_flag;
+bool mutex;
 
 pthread_mutex_t lock;
-// pthread_spinlock_t lock;
+pthread_spinlock_t slock;
 pthread_barrier_t barrier;
 
 /*
@@ -43,6 +44,8 @@ pthread_barrier_t barrier;
 
 void *kmeans(void *arg);
 
+void smart_lock();
+void smart_unlock();
 vector<Point> randomCentroids(int dimensions, int k, DataSet &dataSet);
 point::pointMap findNearestCentroids(DataSet *dataSet,
                                      vector<Point> &centroids);
@@ -92,7 +95,7 @@ int main(int argc, char *argv[]) {
   max_iterations = INT_MAX;
 
   int opt, val;
-  while ((opt = getopt(argc, argv, "hc:t:i:w:I:")) != -1) {
+  while ((opt = getopt(argc, argv, "hc:t:i:w:I:l")) != -1) {
     switch (opt) {
     case 'h':
       print_help();
@@ -125,6 +128,10 @@ int main(int argc, char *argv[]) {
       assert(optarg);
       input = optarg;
       break;
+
+    case 'l':
+      mutex = false;
+      break;
     }
   }
 
@@ -144,7 +151,7 @@ int main(int argc, char *argv[]) {
 
   pthread_barrier_init(&barrier, NULL, workers);
   pthread_mutex_init(&lock, NULL);
-  // pthread_spinlock_init(&lock, NULL);
+  pthread_spin_init(&slock, 0);
 
   vector<Point> centroids =
       randomCentroids(dataSet->getDimensions(), clusters, *dataSet);
@@ -180,6 +187,9 @@ int main(int argc, char *argv[]) {
 
   printPointVector(dataSet->getPoints());
   printPointVector(centroids);
+
+  delete dataSet;
+  delete arg_void_list;
 }
 
 void *kmeans(void *arg) {
@@ -193,7 +203,6 @@ void *kmeans(void *arg) {
   int dimensions = dataSet->getDimensions();
 
   vector<Point> oldCentroids;
-  bool done = false;
   point::pointMap labels;
 
   do {
@@ -220,14 +229,12 @@ void *kmeans(void *arg) {
 
     vector<Point> newCentroids =
         averageLabeledCentroids(dataSet, labels, centroids);
-    pthread_barrier_wait(&barrier);
 
-    pthread_mutex_lock(&lock);
-    // pthread_spin_lock(&lock);
+    smart_lock();
     for (int i = 0; i < centroids.size(); ++i)
       centroids[i] = centroids[i] + newCentroids[i];
-    pthread_mutex_unlock(&lock);
-    // pthread_spin_unlock(&lock);
+    smart_unlock();
+    pthread_barrier_wait(&barrier);
 
     iterations++;
     if (num_thread == 0)
@@ -243,6 +250,8 @@ void *kmeans(void *arg) {
 
   if (num_thread == 0)
     cout << iterations << endl;
+
+  return nullptr;
 }
 
 vector<Point> randomCentroids(int dimensions, int k, DataSet &dataSet) {
@@ -349,11 +358,9 @@ int findNearestCentroid(Point &point, vector<Point> &centroids) {
     assert(index < centroids.size());
   }
 
-  pthread_mutex_lock(&lock);
-  // pthread_spin_lock(&lock);
+  smart_lock();
   numPointsPerCentroid[index]++;
-  pthread_mutex_unlock(&lock);
-  // pthread_spin_unlock(&lock);
+  smart_unlock();
 
   return index; // returns the index of the centroid in the centroids vector
 }
@@ -539,4 +546,18 @@ vector<DataSet> splitDataSet(DataSet &total, int workers) {
     sets.push_back(set);
   }
   return sets;
+}
+
+void smart_lock() {
+  if (mutex)
+    pthread_mutex_lock(&lock);
+  else
+    pthread_spin_lock(&slock);
+}
+
+void smart_unlock() {
+  if (mutex)
+    pthread_mutex_unlock(&lock);
+  else
+    pthread_spin_unlock(&slock);
 }

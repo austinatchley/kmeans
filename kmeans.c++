@@ -205,18 +205,6 @@ point::pointMap findNearestCentroids(DataSet dataSet, vector<Point> centroids) {
     assert(map.at(point) == nearestCentroid);
     assert(map.size() >= i);
   }
-  /*
-  #ifdef DEBUG
-    for (const auto &pair : map) {
-      cout << endl << "Point: [";
-      for (float val : pair.first.vals)
-        cout << val << ",";
-      cout << "]" << endl;
-
-      cout << "Index: " << pair.second << endl;
-    }
-  #endif
-  */
   return map;
 }
 
@@ -240,11 +228,6 @@ int findNearestCentroid(Point point, vector<Point> centroids) {
     }
 
     assert(sum >= 0);
-    /*if (sum <= 0)
-      for (const auto &val : centroids)
-        for (const auto &num : val.vals)
-          cout << num << endl;
-    */
 
     double dist = sqrt(sum);
     assert(dist - dist == 0); // make sure we don't have nan
@@ -288,15 +271,6 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     Point point = pair.first;
     int centroidIndex = pair.second;
 
-    /*
-#ifdef DEBUG
-    cout << "Point: [";
-    for (float val : point.vals)
-      cout << val << ",";
-    cout << "]" << endl;
-    cout << "Centroid index: " << centroidIndex << endl;
-#endif */
-
     numPointsPerCentroid[centroidIndex]++;
 
     float *centroidSum = sums[centroidIndex];
@@ -320,8 +294,6 @@ vector<Point> averageLabeledCentroids(DataSet dataSet, point::pointMap labels,
     Point point(nums);
     updatedCentroids.push_back(point);
   }
-
-    // cout << endl;
 
 #ifdef DEBUG
   cout << "Final size of: " << updatedCentroids.size() << endl;

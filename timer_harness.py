@@ -35,11 +35,16 @@ args = "./kmeans" + version  + ".out -c " + c +    \
 
 cores = int(w)
 times = []
+times_spin = []
 
 
-def do_test(i, cores):
+def do_test(i, cores, spin):
     arg_list = args.split()
     arg_list[8] = str(cores)
+
+    if spin:
+        arg_list.append('-l')
+        print(" ".join(str(val) for val in arg_list))
 
     output = subprocess.check_output(arg_list)
     result = output.decode('utf-8')
@@ -57,22 +62,51 @@ def do_test(i, cores):
 
     return float(data[2])
 
-for core in range(1, cores+1):
-    do_test(-1, core)
-    both = 0.0
-    for i in range(TESTS):
-        print("\nIteration ", i, "with ", core, "cores.")
-        both += do_test(i, core)
-    times.insert(core, both / 2)
 
-print('\nTimes:')
+do_test(-1, 1, False)
+print("Control")
+control = do_test(1, 1, False)
+for core in range(1, cores + 1):
+    do_test(-1, core, False)
+
+    both = 0.0
+    both_spin = 0.0
+    for i in range(TESTS):
+        print("\nIteration ", i, "with ", core, "cores. Mutex")
+        both += do_test(i, core, False)
+    for i in range(TESTS):
+        print("\nIteration ", i, "with ", core, "cores. Spinlock")
+        both_spin += do_test(i, core, True)
+    average = both / 2
+    average_spin = both_spin / 2
+    times.insert(core, control / average)
+    times_spin.insert(core, control / average_spin)
+
+print('\nSpeedups:')
 for time in times:
     print(time)
 
 color = '#1f10e0'
+color_spin = '#ff0011'
 
-plt.plot(range(1,cores+1), times, c=color, alpha=0.5, marker='o')
+plt.plot(
+    list(map(int, range(1,
+                        int(cores) + 1))),
+    times,
+    c=color,
+    alpha=0.8,
+    marker='o')
+plt.plot(
+    list(map(int, range(1,
+                        int(cores) + 1))),
+    times_spin,
+    c=color_spin,
+    alpha=0.8,
+    marker='o')
+
+plt.legend(['Mutex', 'Spinlock'])
+
 plt.xlabel('Number of Cores')
-plt.ylabel('Time (s)')
-plt.show()
-plt.savefig("graph.pdf", bbox_inches='tight')
+plt.ylabel('Speedup')
+#plt.show()
+plt.savefig("graph" + version + ".pdf", bbox_inches='tight', format='pdf')

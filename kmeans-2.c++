@@ -151,15 +151,16 @@ int main(int argc, char *argv[]) {
   numPointsPerCentroid = vector<int>(centroids.size(), 0);
   break_flag = false;
 
+  void **arg_void_list = (void **)malloc(workers * sizeof(void *));
   for (int i = 0; i < workers; ++i) {
     args *args_i = new args(&dataSets[i], centroids, i);
-    void *arg = static_cast<void *>(args_i);
+    arg_void_list[i] = static_cast<void *>(args_i);
   }
 
   start = clock();
 
   for (int i = 0; i < workers; ++i) {
-    int ret = pthread_create(&workers_list[i], NULL, &kmeans, arg);
+    int ret = pthread_create(&workers_list[i], NULL, &kmeans, arg_void_list[i]);
     if (ret)
       cerr << "Couldn't create thread" << i << endl;
   }

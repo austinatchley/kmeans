@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <sys/sysinfo.h>
 #include <unistd.h>
 #include <vector>
 
@@ -169,6 +170,7 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < workers; ++i) {
     int ret = pthread_create(&workers_list[i], NULL, &kmeans, arg_void_list[i]);
+
     if (ret)
       cerr << "Couldn't create thread" << i << endl;
   }
@@ -201,6 +203,22 @@ void *kmeans(void *arg) {
   int iterations = 0;
 
   int dimensions = dataSet->getDimensions();
+
+  /*
+  cpu_set_t cpuset;
+
+  CPU_ZERO(&cpuset);
+  CPU_SET(num_thread % workers, &cpuset);
+
+  int s = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+
+  smart_lock();
+        pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+  for (int j = 0; j < get_nprocs(); j++)
+    if (CPU_ISSET(j, &cpuset))
+      cout << "    CPU " << j << endl;
+  smart_unlock();
+  */
 
   vector<Point> oldCentroids;
   point::pointMap labels;

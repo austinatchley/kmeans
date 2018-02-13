@@ -57,8 +57,7 @@ def do_test(i, cores):
 
     return float(data[2])
 
-
-for core in range(1, cores + 1):
+for core in range(1, cores+1):
     do_test(-1, core)
     both = 0.0
     for i in range(TESTS):
@@ -72,5 +71,8 @@ for time in times:
 
 color = '#1f10e0'
 
-plt.scatter(range(1, cores + 1), times, s=10, c=color, alpha=0.5)
+plt.plot(range(1,cores+1), times, c=color, alpha=0.5, marker='o')
+plt.xlabel('Number of Cores')
+plt.ylabel('Time (s)')
 plt.show()
+plt.savefig("graph.pdf", bbox_inches='tight')

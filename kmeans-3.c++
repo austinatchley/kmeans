@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sys/sysinfo.h>
 #include <assert.h>
 #include <cfloat>
 #include <cmath>
@@ -13,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include <sys/sysinfo.h>
 #include <unistd.h>
 #include <vector>
 
@@ -47,15 +47,15 @@ void *kmeans(void *arg);
 
 void smart_lock();
 void smart_unlock();
-vector<Point> randomCentroids(int dimensions, int k, DataSet &dataSet);
+void randomCentroids(vector<Point> *centroids, int dimensions, int k, DataSet &dataSet);
 point::pointMap findNearestCentroids(DataSet &dataSet,
-                                     vector<Point> &centroids);
-int findNearestCentroid(Point &point, vector<Point> &centroids);
+                                     vector<Point> *centroids);
+int findNearestCentroid(Point &point, vector<Point> *centroids);
 
 vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
-                                      vector<Point> &centroids);
+                                      vector<Point> *centroids);
 
-bool converged(vector<Point> &centroids, vector<Point> &oldCentroids);
+bool converged(vector<Point> *centroids, vector<Point> *oldCentroids);
 
 void print_help();
 DataSet *readFile(DataSet *ds, string filePath);
@@ -64,11 +64,12 @@ vector<DataSet> splitDataSet(DataSet &total, int workers);
 
 typedef struct args {
   DataSet &dataSet;
-  vector<Point> &centroids;
+  vector<Point> **centroids;
+  vector<Point> **old_centroids;
   int num_thread;
 
-  args(DataSet &set, vector<Point> &cent, int num)
-      : dataSet(set), centroids(cent), num_thread(num) {}
+  args(DataSet &set, vector<Point> *cent, vector<Point> *old_cent, int num)
+      : dataSet(set), centroids(cent), old_centroids(old_cent), num_thread(num) {}
 
 } args;
 
@@ -154,15 +155,20 @@ int main(int argc, char *argv[]) {
   pthread_mutex_init(&lock, NULL);
   pthread_spin_init(&slock, 0);
 
-  vector<Point> centroids =
-      randomCentroids(dataSet->getDimensions(), clusters, *dataSet);
+  vector<Point> *centroids;
+  randomCentroids(centroids, dataSet->getDimensions(), clusters, *dataSet);
+  vector<Point> *old_centroids;
+
+  vector<Point> **centroids_ptr = &centroids;
+  vector<Point> **old_centroids_ptr = &old_centroids;
+  
 
   numPointsPerCentroid = vector<int>(centroids.size(), 0);
   break_flag = false;
 
   void **arg_void_list = (void **)malloc(workers * sizeof(void *));
   for (int i = 0; i < workers; ++i) {
-    args *args_i = new args(dataSets[i], centroids, i);
+    args *args_i = new args(dataSets[i], &centroids, &old_centroids, i);
     arg_void_list[i] = static_cast<void *>(args_i);
   }
 
@@ -196,47 +202,53 @@ int main(int argc, char *argv[]) {
 void *kmeans(void *arg) {
   struct args *args = static_cast<struct args *>(arg);
   DataSet &dataSet = args->dataSet;
-  vector<Point> &centroids = args->centroids;
+  vector<Point> *centroids = args->centroids;
+  vector<Point> *old_centroids = args->old_centroids;
   int num_thread = args->num_thread;
+
+  cpu_set_t *cpuset = (cpu_set_t *) malloc(sizeof(cpu_set_t));
+  CPU_SET(num_thread % get_nprocs(), cpuset);
+  int aff = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), cpuset);
+  if(aff) {
+    cerr << "Error with affinity" << endl;
+    exit(-1);
+  }
 
   int iterations = 0;
 
   int dimensions = dataSet.getDimensions();
 
-  vector<Point> oldCentroids;
   point::pointMap labels;
 
   do {
-    oldCentroids = centroids;
 
 #ifdef DEBUG
     cout << "Iteration " << iterations << endl;
 #endif
 
-    if (num_thread == 0) {
-      fill(numPointsPerCentroid.begin(), numPointsPerCentroid.end(), 0);
-    }
+    labels = findNearestCentroids(dataSet, *centroids);
     pthread_barrier_wait(&barrier);
-
-    labels = findNearestCentroids(dataSet, centroids);
-    pthread_barrier_wait(&barrier);
-
-    if (num_thread == 0) {
-      vector<double> zero(dimensions, 0.0);
-      fill(centroids.begin(), centroids.end(), Point(zero));
-    }
 
     vector<Point> newCentroids =
-        averageLabeledCentroids(dataSet, labels, centroids);
+      averageLabeledCentroids(dataSet, labels, *centroids);
 
     smart_lock();
-    for (int i = 0; i < centroids.size(); ++i)
-      centroids[i] = centroids[i] + newCentroids[i];
+    for (int i = 0; i < centroids->size(); ++i)
+      old_centroids[i] = old_centroids[i] + newCentroids[i];
     smart_unlock();
     pthread_barrier_wait(&barrier);
 
     iterations++;
     if (num_thread == 0) {
+      vector<double> zero(dimensions, 0.0);
+      fill(centroids.begin(), centroids.end(), Point(zero));
+      fill(numPointsPerCentroid.begin(), numPointsPerCentroid.end(), 0);
+    
+      //SWAP
+      vector<Point> *tmp = centroids;
+      centroids = old_centroids;
+      old_centroids = tmp;
+
       if (iterations >= max_iterations || converged(centroids, oldCentroids))
         break_flag = true;
     }
@@ -253,8 +265,7 @@ void *kmeans(void *arg) {
   return nullptr;
 }
 
-vector<Point> randomCentroids(int dimensions, int k, DataSet &dataSet) {
-  vector<Point> centroids;
+void randomCentroids(vector<Point> *centroids, int dimensions, int k, DataSet &dataSet) {
   vector<Point> points = dataSet.getPoints();
   vector<int> indicesUsed;
 
@@ -271,18 +282,17 @@ vector<Point> randomCentroids(int dimensions, int k, DataSet &dataSet) {
     indicesUsed.push_back(index);
 
     Point p(points[index].vals);
-    centroids.push_back(p);
+    centroids->push_back(p);
   }
 
 #ifdef DEBUG
   cout << "Initialized centroids to " << endl;
   printPointVector(centroids);
 #endif
-  return centroids;
 }
 
 point::pointMap findNearestCentroids(DataSet &dataSet,
-                                     vector<Point> &centroids) {
+                                     vector<Point> *centroids) {
   point::pointMap map;
   vector<Point> points = dataSet.getPoints();
 
@@ -310,7 +320,7 @@ point::pointMap findNearestCentroids(DataSet &dataSet,
   return map;
 }
 
-int findNearestCentroid(Point &point, vector<Point> &centroids) {
+int findNearestCentroid(Point &point, vector<Point> *centroids) {
   assert(centroids.size() > 0);
 
   double min_dist = 0.0;

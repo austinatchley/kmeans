@@ -62,12 +62,29 @@ def do_test(i, cores, spin):
 
     return float(data[2])
 
-do_test(-1, 1, False)
+
+def control_test():
+    arg_list = args.split()
+    arg_list[0] = "./kmeans.out"
+
+    output = subprocess.check_output(arg_list)
+    result = output.decode('utf-8')
+
+    f = StringIO(result)
+    reader = csv.reader(f, delimiter=',')
+    data = []
+    for row in reader:
+        data.append(' '.join(element.rstrip() for element in row))
+
+    return float(data[2])
+
+
+control_test()
 print("Control")
-control = do_test(1, 1, False)
+control = control_test()
 for core in range(1, cores + 1):
     do_test(-1, core, False)
-    
+
     both = 0.0
     both_spin = 0.0
     for i in range(TESTS):

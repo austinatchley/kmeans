@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import csv
@@ -65,5 +65,5 @@ print("Points: " + str(len(points_x_float)) + ", Cent: " + str(len(cent_x_float)
 colors = np.random.rand(len(points_x_float))
 
 plt.scatter(points_x_float, points_y_float, s=10, c=points_color, alpha=0.5)
-plt.scatter(cent_x_float, cent_y_float, s=10, c=cent_color, alpha=1)
+plt.scatter(cent_x_float, cent_y_float, s=20, c=cent_color, alpha=1)
 plt.show()

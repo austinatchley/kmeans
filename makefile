@@ -11,13 +11,13 @@ clean:
 	rm *.out
 
 kmeans:
-	g++ $(CFLAGS) -O3 kmeans.c++ -o kmeans.out -std=c++0x
+	g++ $(CFLAGS) -Ofast kmeans.c++ -o kmeans.out -std=c++0x
 
 kmeans-2:
-	g++ $(CFLAGS) -O3 kmeans-2.c++ -o kmeans-2.out -std=c++0x -pthread
+	g++ $(CFLAGS) -Ofast kmeans-2.c++ -o kmeans-2.out -std=c++0x -pthread
 
 kmeans-3:
-	g++ $(CFLAGS) -O3 kmeans-3.c++ -o kmeans-3.out -std=c++0x -pthread
+	g++ $(CFLAGS) -Ofast kmeans-3.c++ -o kmeans-3.out -std=c++0x -pthread
 
 format:
 	clang-format -i kmeans.c++ kmeans-2.c++ kmeans-3.c++

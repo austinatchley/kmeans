@@ -45,7 +45,16 @@ def do_test(i, cores, spin):
     if spin:
         arg_list.append('-l')
         print(" ".join(str(val) for val in arg_list))
+    
+    ret_val = 0
+    try:
+        ret_val = run(arg_list)
+    except:
+        print("Error. Skipping test case")
+        ret_val = -1
+    return ret_val
 
+def run(arg_list):
     output = subprocess.check_output(arg_list)
     result = output.decode('utf-8')
 
@@ -63,9 +72,9 @@ def do_test(i, cores, spin):
     return float(data[2])
 
 
+    
 def control_test():
     arg_list = args.split()
-    arg_list[0] = "./kmeans.out"
 
     output = subprocess.check_output(arg_list)
     result = output.decode('utf-8')
@@ -76,25 +85,38 @@ def control_test():
     for row in reader:
         data.append(' '.join(element.rstrip() for element in row))
 
+    print("Duration:", float(data[2]))
     return float(data[2])
 
 
-control_test()
 print("Control")
+control_test()
 control = control_test()
+print("")
 for core in range(1, cores + 1):
     do_test(-1, core, False)
 
     both = 0.0
     both_spin = 0.0
+    tests_completed = 0
+    tests_completed_spin = 0
+
     for i in range(TESTS):
         print("\nIteration ", i, "with ", core, "cores. Mutex")
-        both += do_test(i, core, False)
+        val = do_test(i, core, False)
+        if val != -1:
+            both += val
+            tests_completed+=1
     for i in range(TESTS):
         print("\nIteration ", i, "with ", core, "cores. Spinlock")
-        both_spin += do_test(i, core, True)
-    average = both / 2
-    average_spin = both_spin / 2
+        val = do_test(i, core, True)
+        if val != -1:
+            both_spin += val
+            tests_completed_spin+=1
+
+    average = both / tests_completed
+    average_spin = both_spin / tests_completed_spin
+
     times.insert(core, control / average)
     times_spin.insert(core, control / average_spin)
 

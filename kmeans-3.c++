@@ -158,9 +158,9 @@ int main(int argc, char *argv[]) {
   pthread_mutex_init(&lock, NULL);
   pthread_spin_init(&slock, 0);
 
-  vector<double> zero(0, 0);
-  vector<Point> old_centroids = vector<Point>(clusters, Point(zero));
-  vector<Point> centroids =
+  vector<double> zero(dataSet->getDimensions(), 0);
+  vector<Point> centroids = vector<Point>(clusters, Point(zero));
+  vector<Point> old_centroids =
       randomCentroids(dataSet->getDimensions(), clusters, *dataSet);
 
   vector<Point> *centroids_ptr = &centroids;
@@ -177,6 +177,9 @@ int main(int argc, char *argv[]) {
   }
 
   start = clock();
+
+  if (workers == 1)
+    kmeans(arg_void_list[i]);
 
   for (int i = 0; i < workers; ++i) {
     int ret = pthread_create(&workers_list[i], NULL, &kmeans, arg_void_list[i]);
@@ -223,17 +226,18 @@ void *kmeans(void *arg) {
     cout << "Iteration " << iterations << endl;
 #endif
 
-    labels = findNearestCentroids(dataSet, *centroids, locPointsPerCentroid);
+    labels = findNearestCentroids(dataSet, *old_centroids, locPointsPerCentroid);
 
     //compute local sum
-    vector<Point> locSum = averageLabeledCentroids(dataSet, labels, *centroids,
+    vector<Point> locSum = averageLabeledCentroids(dataSet, labels, *old_centroids,
                                                    locPointsPerCentroid);
     smart_lock();
+    // centroids should now contain the sum of all the points pointing to it
     for (int i = 0; i < num_centroids; ++i)
-      (**centroids)[i] = (**centroids)[i] + locAvg[i];
+      (**centroids)[i] = (**centroids)[i] + locSum[i];
     smart_unlock();
 
-   pthread_barrier_wait(&barrier);
+    pthread_barrier_wait(&barrier);
 
     iterations++;
 
@@ -322,15 +326,15 @@ point::pointMap findNearestCentroids(DataSet &dataSet, vector<Point> *centroids,
 #endif
     }
 
-    smart_lock();
-    for (int i = 0; i < centroids->size(); ++i)
-      numPointsPerCentroid[i] += locPPC[i];
-    smart_unlock();
-
     // cout << map.at(point) << endl;
     assert(map.at(point) == nearestCentroid);
     assert(map.size() >= i);
   }
+
+  smart_lock();
+  for (int i = 0; i < centroids->size(); ++i)
+    numPointsPerCentroid[i] += locPPC[i];
+  smart_unlock();
 
   return map;
 }
@@ -420,22 +424,7 @@ vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
   }
 
   for (int i = 0; i < centroids->size(); ++i) {
-    vector<double> nums;
-
-    for (int j = 0; j < dataSet.getDimensions(); ++j) {
-      double finalNum = sums[i][j];
-      if (locPPC[i] > 0)
-        finalNum /= locPPC[i];
-
-      if (isnan(finalNum)) {
-        cout << "finalNum: " << finalNum << ", numPPC[" << i
-             << "]: " << locPPC[i] << ", sum[" << j << "]: " << sums[i][j]
-             << endl;
-      }
-      nums.push_back(finalNum);
-    }
-
-    Point point(nums);
+    Point point(sums[i]);
     updatedCentroids.push_back(point);
   }
 

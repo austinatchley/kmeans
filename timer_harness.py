@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import csv
@@ -58,7 +58,7 @@ def do_test(i, cores):
     return float(data[2])
 
 for core in range(1, cores+1):
-    do_test(-1, core)
+    do_test(i, core)
     both = 0.0
     for i in range(TESTS):
         print("\nIteration ", i, "with ", core, "cores.")

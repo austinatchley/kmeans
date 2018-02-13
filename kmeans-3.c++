@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <sys/sysinfo.h>
 #include <assert.h>
 #include <cfloat>
 #include <cmath>
@@ -14,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <sys/sysinfo.h>
 #include <unistd.h>
 #include <vector>
 
@@ -47,10 +47,12 @@ void *kmeans(void *arg);
 
 void smart_lock();
 void smart_unlock();
-void randomCentroids(vector<Point> *centroids, int dimensions, int k, DataSet &dataSet);
-point::pointMap findNearestCentroids(DataSet &dataSet,
-                                     vector<Point> *centroids);
-int findNearestCentroid(Point &point, vector<Point> *centroids);
+void randomCentroids(vector<Point> *centroids, int dimensions, int k,
+                     DataSet &dataSet);
+point::pointMap findNearestCentroids(DataSet &dataSet, vector<Point> *centroids,
+                                     vector<int> &locPPC);
+int findNearestCentroid(Point &point, vector<Point> *centroids,
+                        vector<int> &locPPC);
 
 vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
                                       vector<Point> *centroids);
@@ -68,8 +70,9 @@ typedef struct args {
   vector<Point> **old_centroids;
   int num_thread;
 
-  args(DataSet &set, vector<Point> *cent, vector<Point> *old_cent, int num)
-      : dataSet(set), centroids(cent), old_centroids(old_cent), num_thread(num) {}
+  args(DataSet &set, vector<Point> **cent, vector<Point> **old_cent, int num)
+      : dataSet(set), centroids(cent), old_centroids(old_cent),
+        num_thread(num) {}
 
 } args;
 
@@ -155,16 +158,16 @@ int main(int argc, char *argv[]) {
   pthread_mutex_init(&lock, NULL);
   pthread_spin_init(&slock, 0);
 
-  vector<Point> *centroids;
+  vector<double> zero(0, 0);
+  vector<Point> *centroids = new vector<Point>(clusters, zero);
   randomCentroids(centroids, dataSet->getDimensions(), clusters, *dataSet);
-  vector<Point> *old_centroids;
+  vector<Point> *old_centroids = new vector<Point>(clusters, zero);
 
   vector<Point> **centroids_ptr = &centroids;
   vector<Point> **old_centroids_ptr = &old_centroids;
-  
 
-  numPointsPerCentroid = vector<int>(centroids.size(), 0);
   break_flag = false;
+  numPointsPerCentroid = vector<int>(centroids->size(), 0);
 
   void **arg_void_list = (void **)malloc(workers * sizeof(void *));
   for (int i = 0; i < workers; ++i) {
@@ -193,64 +196,63 @@ int main(int argc, char *argv[]) {
   cout << duration << endl;
 
   printPointVector(dataSet->getPoints());
-  printPointVector(centroids);
+  printPointVector(*old_centroids);
 
   delete dataSet;
+  delete centroids;
+  delete old_centroids;
   delete arg_void_list;
 }
 
 void *kmeans(void *arg) {
   struct args *args = static_cast<struct args *>(arg);
   DataSet &dataSet = args->dataSet;
-  vector<Point> *centroids = args->centroids;
-  vector<Point> *old_centroids = args->old_centroids;
+  vector<Point> **centroids = args->centroids;
+  vector<Point> **old_centroids = args->old_centroids;
   int num_thread = args->num_thread;
-
-  cpu_set_t *cpuset = (cpu_set_t *) malloc(sizeof(cpu_set_t));
-  CPU_SET(num_thread % get_nprocs(), cpuset);
-  int aff = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), cpuset);
-  if(aff) {
-    cerr << "Error with affinity" << endl;
-    exit(-1);
-  }
-
   int iterations = 0;
+  int num_centroids = (*centroids)->size();
 
   int dimensions = dataSet.getDimensions();
 
   point::pointMap labels;
 
   do {
+    vector<int> locPointsPerCentroid(num_centroids, 0);
 
 #ifdef DEBUG
     cout << "Iteration " << iterations << endl;
 #endif
 
-    labels = findNearestCentroids(dataSet, *centroids);
-    pthread_barrier_wait(&barrier);
+    labels = findNearestCentroids(dataSet, *centroids, locPointsPerCentroid);
 
-    vector<Point> newCentroids =
-      averageLabeledCentroids(dataSet, labels, *centroids);
+    vector<Point> locAvg = averageLabeledCentroids(dataSet, labels, *centroids);
+    pthread_barrier_wait(&barrier);
 
     smart_lock();
-    for (int i = 0; i < centroids->size(); ++i)
-      old_centroids[i] = old_centroids[i] + newCentroids[i];
+    for (int i = 0; i < num_centroids; ++i)
+      (**centroids)[i] = (**centroids)[i] + locAvg[i];
     smart_unlock();
-    pthread_barrier_wait(&barrier);
 
     iterations++;
-    if (num_thread == 0) {
-      vector<double> zero(dimensions, 0.0);
-      fill(centroids.begin(), centroids.end(), Point(zero));
-      fill(numPointsPerCentroid.begin(), numPointsPerCentroid.end(), 0);
-    
-      //SWAP
-      vector<Point> *tmp = centroids;
-      centroids = old_centroids;
-      old_centroids = tmp;
 
-      if (iterations >= max_iterations || converged(centroids, oldCentroids))
+    if (num_thread == 0) {
+      for (int i = 0; i < num_centroids; ++i) {
+        Point &point = (**centroids)[i];
+        point = point / numPointsPerCentroid[i];
+        numPointsPerCentroid[i] = 0;
+      }
+
+      if (iterations >= max_iterations || converged(*centroids, *old_centroids))
         break_flag = true;
+
+      vector<double> zero(dimensions, 0.0);
+      fill((*old_centroids)->begin(), (*old_centroids)->end(), Point(zero));
+
+      // SWAP
+      vector<Point> *tmp = *centroids;
+      *centroids = *old_centroids;
+      *old_centroids = tmp;
     }
     pthread_barrier_wait(&barrier);
 
@@ -265,7 +267,9 @@ void *kmeans(void *arg) {
   return nullptr;
 }
 
-void randomCentroids(vector<Point> *centroids, int dimensions, int k, DataSet &dataSet) {
+void randomCentroids(vector<Point> *centroids, int dimensions, int k,
+                     DataSet &dataSet) {
+  centroids->clear();
   vector<Point> points = dataSet.getPoints();
   vector<int> indicesUsed;
 
@@ -281,8 +285,7 @@ void randomCentroids(vector<Point> *centroids, int dimensions, int k, DataSet &d
 
     indicesUsed.push_back(index);
 
-    Point p(points[index].vals);
-    centroids->push_back(p);
+    centroids->push_back(points[index]);
   }
 
 #ifdef DEBUG
@@ -291,15 +294,15 @@ void randomCentroids(vector<Point> *centroids, int dimensions, int k, DataSet &d
 #endif
 }
 
-point::pointMap findNearestCentroids(DataSet &dataSet,
-                                     vector<Point> *centroids) {
+point::pointMap findNearestCentroids(DataSet &dataSet, vector<Point> *centroids,
+                                     vector<int> &locPPC) {
   point::pointMap map;
   vector<Point> points = dataSet.getPoints();
 
   for (int i = 0; i < points.size(); ++i) {
     Point point = points[i];
-    int nearestCentroid =
-        findNearestCentroid(point, centroids); // returns index of the centroid
+    int nearestCentroid = findNearestCentroid(
+        point, centroids, locPPC); // returns index of the centroid
 
     // cout << "Point " << i << " Nearest Cent: " << nearestCentroid << endl;
     pair<point::pointMap::iterator, bool> ret;
@@ -312,6 +315,11 @@ point::pointMap findNearestCentroids(DataSet &dataSet,
 #endif
     }
 
+    smart_lock();
+    for (int i = 0; i < centroids->size(); ++i)
+      numPointsPerCentroid[i] += locPPC[i];
+    smart_unlock();
+
     // cout << map.at(point) << endl;
     assert(map.at(point) == nearestCentroid);
     assert(map.size() >= i);
@@ -320,24 +328,25 @@ point::pointMap findNearestCentroids(DataSet &dataSet,
   return map;
 }
 
-int findNearestCentroid(Point &point, vector<Point> *centroids) {
-  assert(centroids.size() > 0);
+int findNearestCentroid(Point &point, vector<Point> *centroids,
+                        vector<int> &locPPC) {
+  assert(centroids->size() > 0);
 
   double min_dist = 0.0;
   for (int i = 0; i < point.getDimensions(); ++i) {
-    min_dist += pow(centroids[0].vals[i] - point.vals[i], 2.0);
+    min_dist += pow((*centroids)[0].vals[i] - point.vals[i], 2.0);
   }
   min_dist = sqrt(min_dist);
 
   int index = 0;
 
-  for (int i = 0; i < centroids.size(); ++i) {
+  for (int i = 0; i < centroids->size(); ++i) {
     double sum = 0.0;
 
     for (int j = 0; j < point.getDimensions(); ++j) {
       assert(sum >= 0);
       double old_sum = sum;
-      double square = pow(centroids[i].vals[j] - point.vals[j], 2.0);
+      double square = pow((*centroids)[i].vals[j] - point.vals[j], 2.0);
       assert(!isnan(square));
       assert(abs(square) <= numeric_limits<double>::max() - abs(sum));
 
@@ -363,21 +372,19 @@ int findNearestCentroid(Point &point, vector<Point> *centroids) {
       index = i;
     }
     assert(index >= 0);
-    assert(index < centroids.size());
+    assert(index < centroids->size());
   }
 
-  smart_lock();
-  numPointsPerCentroid[index]++;
-  smart_unlock();
+  locPPC[index]++;
 
   return index; // returns the index of the centroid in the centroids vector
 }
 
 vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
-                                      vector<Point> &centroids) {
+                                      vector<Point> *centroids) {
 #ifdef DEBUG
-  cout << "Initial size of centroids: " << centroids.size() << endl;
-  cout << "Initial size of elem 0 of centroid: " << centroids[0].vals.size()
+  cout << "Initial size of centroids: " << centroids->size() << endl;
+  cout << "Initial size of elem 0 of centroid: " << (*centroids)[0].vals.size()
        << endl;
 #endif
 
@@ -385,7 +392,7 @@ vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
 
   // indices correspond to centroids
   vector<double> sum(dataSet.getDimensions(), 0.0);
-  vector<vector<double>> sums(centroids.size(), sum);
+  vector<vector<double>> sums(centroids->size(), sum);
 
 #ifdef DEBUG
   cout << "Size of sums elem: " << (sizeof(sums[0]) / sizeof(sums[0][0]))
@@ -397,14 +404,14 @@ vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
     int centroidIndex = pair.second;
 
     for (int i = 0; i < dataSet.getDimensions(); ++i) {
-      assert(!isnan(sums[centroidIndex][i]));
+      assert(!isnan(point.vals[i]));
 
       sums[centroidIndex][i] += point.vals[i];
       assert(!isnan(sums[centroidIndex][i]));
     }
   }
 
-  for (int i = 0; i < centroids.size(); ++i) {
+  for (int i = 0; i < centroids->size(); ++i) {
     vector<double> nums;
 
     for (int j = 0; j < dataSet.getDimensions(); ++j) {
@@ -434,15 +441,17 @@ vector<Point> averageLabeledCentroids(DataSet &dataSet, point::pointMap &labels,
   return updatedCentroids;
 }
 
-bool converged(vector<Point> &centroids, vector<Point> &oldCentroids) {
-  assert(centroids.size() == oldCentroids.size());
+bool converged(vector<Point> *centroids, vector<Point> *oldCentroids) {
+  if (centroids->size() != oldCentroids->size() ||
+      (*centroids)[0].vals.size() != (*oldCentroids)[0].vals.size())
+    return false;
 
-  assert(centroids[0].vals.size() == oldCentroids[0].vals.size());
-
-  for (int i = 0; i < centroids.size(); ++i) {
-    Point curPoint = centroids[i];
-    Point oldPoint = oldCentroids[i];
-    for (int j = 0; j < curPoint.vals.size(); ++j)
+  for (int i = 0; i < centroids->size(); ++i) {
+    Point curPoint = (*centroids)[i];
+    Point oldPoint = (*oldCentroids)[i];
+    for (int j = 0; j < curPoint.vals.size(); ++j) {
+      assert(!isnan(curPoint.vals[j]));
+      assert(!isnan(oldPoint.vals[j]));
       // if any haven't converged, not done
       if (fabs(curPoint.vals[j] - oldPoint.vals[j]) > threshold) {
 #ifdef DEBUG
@@ -451,13 +460,14 @@ bool converged(vector<Point> &centroids, vector<Point> &oldCentroids) {
 #endif
         return false;
       }
+    }
   }
 
 #ifdef DEBUG
   cout << "Final transformation\n";
-  printPointVector(oldCentroids);
+  printPointVector(*oldCentroids);
   cout << "->\n";
-  printPointVector(centroids);
+  printPointVector(*centroids);
 #endif
 
   return true;

@@ -54,13 +54,17 @@ def do_test(i, cores):
         print('Points:\t', data[0])
         print('Iterations:\t', data[1])
         print('Duration:\t', data[2])
-        times.insert(i, float(data[2]))
 
-for core in range(1, cores+1):
+    return float(data[2])
+
+
+for core in range(1, cores + 1):
     do_test(-1, core)
+    both = 0.0
     for i in range(TESTS):
         print("\nIteration ", i, "with ", core, "cores.")
-        do_test(i, core)
+        both += do_test(i, core)
+    times.insert(core, both / 2)
 
 print('\nTimes:')
 for time in times:
@@ -68,6 +72,5 @@ for time in times:
 
 color = '#1f10e0'
 
-#plt.scatter(points_x_float, points_y_float, s=10, c=points_color, alpha=0.5)
-#plt.scatter(cent_x_float, cent_y_float, s=10, c=cent_color, alpha=1)
-#plt.show()
+plt.scatter(range(1, cores + 1), times, s=10, c=color, alpha=0.5)
+plt.show()

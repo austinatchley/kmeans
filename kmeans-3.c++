@@ -178,19 +178,14 @@ int main(int argc, char *argv[]) {
 
   start = clock();
 
-  if (workers == 1)
-    kmeans(arg_void_list[0]);
-  else {
-    for (int i = 0; i < workers; ++i) {
-      int ret =
-          pthread_create(&workers_list[i], NULL, &kmeans, arg_void_list[i]);
-      if (ret)
-        cerr << "Couldn't create thread" << i << endl;
-    }
-
-    for (int i = 0; i < workers; ++i)
-      pthread_join(workers_list[i], NULL);
+  for (int i = 0; i < workers; ++i) {
+    int ret = pthread_create(&workers_list[i], NULL, &kmeans, arg_void_list[i]);
+    if (ret)
+      cerr << "Couldn't create thread" << i << endl;
   }
+
+  for (int i = 0; i < workers; ++i)
+    pthread_join(workers_list[i], NULL);
 
   duration = (clock() - start) / (double)CLOCKS_PER_SEC;
 

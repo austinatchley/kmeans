@@ -160,9 +160,10 @@ int main(int argc, char *argv[]) {
   numPointsPerCentroid = vector<int>(centroids.size(), 0);
   break_flag = false;
 
+  /*
   cpu_set_t cpuset;
   pthread_attr_t attr;
-  pthread_attr_init(&attr);
+  pthread_attr_init(&attr);*/
 
   void **arg_void_list = (void **)malloc(workers * sizeof(void *));
   for (int i = 0; i < workers; ++i) {
@@ -173,13 +174,12 @@ int main(int argc, char *argv[]) {
   start = clock();
 
   for (int i = 0; i < workers; ++i) {
-    CPU_ZERO(&cpuset);
-    CPU_SET(i % workers, &cpuset);
+    // CPU_ZERO(&cpuset);
+    // CPU_SET(i % workers, &cpuset);
 
-    pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset);
+    // pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset);
 
-    int ret =
-        pthread_create(&workers_list[i], &attr, &kmeans, arg_void_list[i]);
+    int ret = pthread_create(&workers_list[i], NULL, &kmeans, arg_void_list[i]);
 
     if (ret)
       cerr << "Couldn't create thread" << i << endl;
@@ -222,6 +222,7 @@ void *kmeans(void *arg) {
 
   int s = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
 */
+  /*
   cpu_set_t cpuset;
   smart_lock();
   pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
@@ -229,6 +230,7 @@ void *kmeans(void *arg) {
     if (CPU_ISSET(j, &cpuset))
       cout << "    CPU " << j << endl;
   smart_unlock();
+  */
 
   vector<Point> oldCentroids;
   point::pointMap labels;

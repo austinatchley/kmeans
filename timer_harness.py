@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import csv
@@ -62,13 +62,12 @@ def do_test(i, cores, spin):
 
     return float(data[2])
 
-
 do_test(-1, 1, False)
 print("Control")
 control = do_test(1, 1, False)
 for core in range(1, cores + 1):
     do_test(-1, core, False)
-
+    
     both = 0.0
     both_spin = 0.0
     for i in range(TESTS):

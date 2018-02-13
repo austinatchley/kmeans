@@ -178,7 +178,8 @@ int main(int argc, char *argv[]) {
 
     pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset);
 
-    int ret = pthread_create(&workers_list[i], &attr, &kmeans, arg_void_list[i]);
+    int ret =
+        pthread_create(&workers_list[i], &attr, &kmeans, arg_void_list[i]);
 
     if (ret)
       cerr << "Couldn't create thread" << i << endl;
@@ -223,7 +224,7 @@ void *kmeans(void *arg) {
 */
   cpu_set_t cpuset;
   smart_lock();
-        pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+  pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
   for (int j = 0; j < get_nprocs(); j++)
     if (CPU_ISSET(j, &cpuset))
       cout << "    CPU " << j << endl;

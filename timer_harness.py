@@ -45,7 +45,7 @@ def do_test(i, cores, spin):
     if spin:
         arg_list.append('-l')
         print(" ".join(str(val) for val in arg_list))
-    
+
     ret_val = 0
     try:
         ret_val = run(arg_list)
@@ -53,6 +53,7 @@ def do_test(i, cores, spin):
         print("Error. Skipping test case")
         ret_val = -1
     return ret_val
+
 
 def run(arg_list):
     output = subprocess.check_output(arg_list)
@@ -72,7 +73,6 @@ def run(arg_list):
     return float(data[2])
 
 
-    
 def control_test():
     arg_list = args.split()
 
@@ -106,13 +106,13 @@ for core in range(1, cores + 1):
         val = do_test(i, core, False)
         if val != -1:
             both += val
-            tests_completed+=1
+            tests_completed += 1
     for i in range(TESTS):
         print("\nIteration ", i, "with ", core, "cores. Spinlock")
         val = do_test(i, core, True)
         if val != -1:
             both_spin += val
-            tests_completed_spin+=1
+            tests_completed_spin += 1
 
     average = both / tests_completed
     average_spin = both_spin / tests_completed_spin

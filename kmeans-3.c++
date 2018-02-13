@@ -226,11 +226,12 @@ void *kmeans(void *arg) {
     cout << "Iteration " << iterations << endl;
 #endif
 
-    labels = findNearestCentroids(dataSet, *old_centroids, locPointsPerCentroid);
+    labels =
+        findNearestCentroids(dataSet, *old_centroids, locPointsPerCentroid);
 
-    //compute local sum
-    vector<Point> locSum = averageLabeledCentroids(dataSet, labels, *old_centroids,
-                                                   locPointsPerCentroid);
+    // compute local sum
+    vector<Point> locSum = averageLabeledCentroids(
+        dataSet, labels, *old_centroids, locPointsPerCentroid);
     smart_lock();
     // centroids should now contain the sum of all the points pointing to it
     for (int i = 0; i < num_centroids; ++i)

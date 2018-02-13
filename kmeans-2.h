@@ -34,6 +34,7 @@ public:
   bool operator>(const Point &other) const;
   bool operator==(const Point &other) const;
   bool operator!=(const Point &other) const;
+  Point operator+(const Point &other) const;
 };
 
 class DataSet {
@@ -63,6 +64,14 @@ bool Point::operator!=(const Point &other) const {
   return this->vals != other.vals;
 }
 
+Point Point::operator+(const Point &other) const {
+  vector<double> v;
+
+  for (int i = 0; i < vals.size(); ++i)
+    v.push_back(other.vals[i] + vals[i]);
+
+  return Point(v);
+}
 namespace point {
 typedef std::map<Point, int> pointMap;
 }

@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 
   pthread_barrier_init(&barrier, NULL, workers);
   pthread_mutex_init(&lock, NULL);
-  //pthread_spinlock_init(&lock, NULL);
+  // pthread_spinlock_init(&lock, NULL);
 
   vector<Point> centroids =
       randomCentroids(dataSet->getDimensions(), clusters, *dataSet);
@@ -223,13 +223,11 @@ void *kmeans(void *arg) {
     pthread_barrier_wait(&barrier);
 
     pthread_mutex_lock(&lock);
-    //pthread_spin_lock(&lock);
+    // pthread_spin_lock(&lock);
     for (int i = 0; i < centroids.size(); ++i)
-      for (int j = 0; j < newCentroids[i].vals.size(); ++j) {
-        centroids[i].vals[j] += newCentroids[i].vals[j];
-      }
+      centroids[i] = centroids[i] + newCentroids[i];
     pthread_mutex_unlock(&lock);
-    //pthread_spin_unlock(&lock);
+    // pthread_spin_unlock(&lock);
 
     iterations++;
     if (num_thread == 0)
@@ -352,10 +350,10 @@ int findNearestCentroid(Point &point, vector<Point> &centroids) {
   }
 
   pthread_mutex_lock(&lock);
-  //pthread_spin_lock(&lock);
+  // pthread_spin_lock(&lock);
   numPointsPerCentroid[index]++;
   pthread_mutex_unlock(&lock);
-  //pthread_spin_unlock(&lock);
+  // pthread_spin_unlock(&lock);
 
   return index; // returns the index of the centroid in the centroids vector
 }

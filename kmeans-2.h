@@ -34,8 +34,8 @@ public:
   bool operator>(const Point &other) const;
   bool operator==(const Point &other) const;
   bool operator!=(const Point &other) const;
-  Point operator+(const Point &other) const;
-  Point operator/(int val) const;
+  Point &operator+(const Point &other);
+  Point &operator/(int val);
 };
 
 class DataSet {
@@ -65,23 +65,19 @@ bool Point::operator!=(const Point &other) const {
   return this->vals != other.vals;
 }
 
-Point Point::operator+(const Point &other) const {
-  vector<double> v;
-
+Point &Point::operator+(const Point &other) {
   for (int i = 0; i < vals.size(); ++i)
-    v.push_back(other.vals[i] + vals[i]);
+    this->vals[i] += other.vals[i];
 
-  return Point(v);
+  return *this;
 }
 
-Point Point::operator/(int val) const {
-  vector<double> v;
+Point &Point::operator/(int val) {
+  const int len = vals.size();
+  for (int i = 0; i < len; ++i)
+    this->vals[i] = this->vals[i] / val;
 
-  for (int i = 0; i < vals.size(); ++i)
-    v.push_back(vals[i] / val);
-
-  Point p = Point(v);
-  return p;
+  return *this;
 }
 
 namespace point {

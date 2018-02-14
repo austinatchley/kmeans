@@ -225,14 +225,15 @@ void *kmeans(void *arg) {
 
     labels = findNearestCentroids(dataSet, *centroids, locPointsPerCentroid);
 
-    vector<Point> locAvg = averageLabeledCentroids(dataSet, labels, *centroids,
+    //compute local sum
+    vector<Point> locSum = averageLabeledCentroids(dataSet, labels, *centroids,
                                                    locPointsPerCentroid);
-    pthread_barrier_wait(&barrier);
-
     smart_lock();
     for (int i = 0; i < num_centroids; ++i)
       (**centroids)[i] = (**centroids)[i] + locAvg[i];
     smart_unlock();
+
+   pthread_barrier_wait(&barrier);
 
     iterations++;
 
